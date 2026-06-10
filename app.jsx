@@ -1,7 +1,7 @@
 (function () {
   const { useState, useCallback } = React;
   const Q = window.PARLA_QUESTIONS;
-  const { Pip, ProgressBar, HeartsDisplay, OptionButton, QuestionCard, FeedbackBar, ActionButton, ResultScreen, LockedScreen } = window;
+  const { Pip, ProgressBar, HeartsDisplay, OptionButton, QuestionCard, FeedbackBar, ActionButton, ResultScreen, LockedScreen, OnboardingFlow } = window;
 
   const CONFIG = {
     maxHearts: 3,
@@ -92,6 +92,9 @@
     const mood = mascotMood(q);
     const rootStyle = { '--green': CONFIG.accent.c, '--green-d': CONFIG.accent.d, '--opt-cols': CONFIG.optionColumns };
 
+    // Onboarding runs once per session, before the quiz (PRD section 11).
+    const [profile, setProfile] = useState(null);
+
     const onAction = () => {
       if (q.isChecked) q.advance();
       else q.checkAnswer();
@@ -100,7 +103,9 @@
     return (
       <div className="app" style={rootStyle}>
         <div className="phone">
-          {q.phase === 'locked' ? (
+          {profile === null ? (
+            <OnboardingFlow onComplete={setProfile} />
+          ) : q.phase === 'locked' ? (
             <LockedScreen onReset={q.resetQuiz} />
           ) : q.phase === 'complete' ? (
             <ResultScreen score={q.score} total={q.total} hearts={q.hearts} onReset={q.resetQuiz} />
