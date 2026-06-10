@@ -20,8 +20,8 @@
         </defs>
         <path
           d="M16 28C16 28 2 19.5 2 10.4 2 5.5 5.8 2 10 2c2.6 0 4.8 1.3 6 3.3C17.2 3.3 19.4 2 22 2c4.2 0 8 3.5 8 8.4C30 19.5 16 28 16 28Z"
-          fill={filled ? 'url(#hg)' : '#E6E3F0'}
-          stroke={filled ? '#E5274C' : '#D9D5E6'}
+          fill={filled ? 'url(#hg)' : '#30363D'}
+          stroke={filled ? '#E5274C' : '#484F58'}
           strokeWidth="1.5"
         />
         {filled && (
@@ -139,6 +139,47 @@
     );
   }
 
+  function BackButton({ onClick, label = 'Back' }) {
+    return (
+      <button type="button" className="back-btn" onClick={onClick} aria-label={label}>
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+    );
+  }
+
+  function PillButton({ label, onClick, variant = 'green' }) {
+    return (
+      <button type="button" className={'btn-pill btn-pill--' + variant} onClick={onClick}>
+        {label}
+      </button>
+    );
+  }
+
+  function GhostLink({ label, onClick }) {
+    return (
+      <button type="button" className="link-ghost" onClick={onClick}>
+        {label}
+      </button>
+    );
+  }
+
+  function LanguageCard({ flag, name, available, onSelect }) {
+    return (
+      <button
+        type="button"
+        className={'lang-card' + (available ? '' : ' lang-card--disabled')}
+        disabled={!available}
+        onClick={onSelect}
+      >
+        {!available && <span className="lang-badge">Coming soon</span>}
+        <span className="lang-flag">{flag}</span>
+        <span className="lang-name">{name}</span>
+      </button>
+    );
+  }
+
   Object.assign(window, {
     Heart,
     ProgressBar,
@@ -147,5 +188,9 @@
     QuestionCard,
     FeedbackBar,
     ActionButton,
+    BackButton,
+    PillButton,
+    GhostLink,
+    LanguageCard,
   });
 })();
