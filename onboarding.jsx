@@ -19,6 +19,29 @@
     { id: 'intense', label: 'Intense', detail: '20 min / day' },
   ];
 
+  const SOURCES = [
+    { id: 'friends',   emoji: '👥', label: 'Friends / family' },
+    { id: 'tiktok',    emoji: '🎵', label: 'TikTok' },
+    { id: 'youtube',   emoji: '▶️', label: 'YouTube' },
+    { id: 'instagram', emoji: '📸', label: 'Instagram' },
+    { id: 'search',    emoji: '🔍', label: 'Google Search' },
+    { id: 'other',     emoji: '✨', label: 'Other' },
+  ];
+
+  const REASONS = [
+    { id: 'people', emoji: '🗣️', label: 'Connect with people' },
+    { id: 'career', emoji: '💼', label: 'Boost my career' },
+    { id: 'school', emoji: '🎓', label: 'Support my education' },
+    { id: 'travel', emoji: '✈️', label: 'Prepare for travel' },
+    { id: 'fun',    emoji: '🎉', label: 'Just for fun' },
+    { id: 'brain',  emoji: '🧠', label: 'Train my brain' },
+  ];
+
+  const LEVELS = (lang) => [
+    { id: 'new',  emoji: '🌱', label: 'I’m new to ' + lang,      detail: 'Start from the very beginning' },
+    { id: 'some', emoji: '📚', label: 'I know some ' + lang, detail: 'Jump in with the basics quiz' },
+  ];
+
   function Flag({ id }) {
     const flags = {
       es: (
@@ -134,6 +157,38 @@
     );
   }
 
+  function SurveyStep({ title, sub, options, selected, onSelect, onContinue, cta }) {
+    return (
+      <div className="screen ob-step">
+        <div className="ob-head">
+          <h1 className="ob-title font-display">{title}</h1>
+          {sub && <p className="ob-sub">{sub}</p>}
+        </div>
+        <div className="ob-scroll">
+          <div className="goal-list">
+            {options.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className={'goal-row ' + (selected === opt.id ? 'goal-row--sel' : '')}
+                onClick={() => onSelect(opt.id)}
+              >
+                <span className="row-emoji" aria-hidden="true">{opt.emoji}</span>
+                <span className="row-text">
+                  <span className="goal-label">{opt.label}</span>
+                  {opt.detail && <span className="row-detail">{opt.detail}</span>}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="footer">
+          <ActionButton label={cta || 'Continue'} onClick={onContinue} disabled={selected === null} variant="green" />
+        </div>
+      </div>
+    );
+  }
+
   function GoalStep({ selected, onSelect, onContinue }) {
     return (
       <div className="screen ob-step">
@@ -166,17 +221,54 @@
   function OnboardingFlow({ onComplete }) {
     const [step, setStep] = useState(0);
     const [language, setLanguage] = useState(null);
+    const [source, setSource] = useState(null);
+    const [reason, setReason] = useState(null);
+    const [level, setLevel] = useState(null);
     const [goal, setGoal] = useState(null);
+
+    const langName = language ? LANGUAGES.find((l) => l.id === language).name : '';
 
     return (
       <div className="ob">
-        <StepDots step={step} total={3} />
+        <StepDots step={step} total={6} />
         {step === 0 && <WelcomeStep onContinue={() => setStep(1)} />}
         {step === 1 && (
           <LanguageStep selected={language} onSelect={setLanguage} onContinue={() => setStep(2)} />
         )}
         {step === 2 && (
-          <GoalStep selected={goal} onSelect={setGoal} onContinue={() => onComplete({ language, goal })} />
+          <SurveyStep
+            title="How did you hear about Parla?"
+            options={SOURCES}
+            selected={source}
+            onSelect={setSource}
+            onContinue={() => setStep(3)}
+          />
+        )}
+        {step === 3 && (
+          <SurveyStep
+            title={'Why are you learning ' + langName + '?'}
+            options={REASONS}
+            selected={reason}
+            onSelect={setReason}
+            onContinue={() => setStep(4)}
+          />
+        )}
+        {step === 4 && (
+          <SurveyStep
+            title={'Where are you in your ' + langName + ' studies?'}
+            sub="Let’s pick a starting point — you can change this later."
+            options={LEVELS(langName)}
+            selected={level}
+            onSelect={setLevel}
+            onContinue={() => setStep(5)}
+          />
+        )}
+        {step === 5 && (
+          <GoalStep
+            selected={goal}
+            onSelect={setGoal}
+            onContinue={() => onComplete({ language, source, reason, level, goal })}
+          />
         )}
       </div>
     );
