@@ -215,7 +215,7 @@
           <Pip mood="sad" size={132} />
         </div>
         <h1 className="locked-title font-display">You’re out of hearts</h1>
-        <p className="locked-sub">Pip will wait with you. Practice, spend gems, upgrade, or come back when a heart refills.</p>
+        <p className="locked-sub">I&rsquo;ll wait with you. Practice, spend gems, upgrade, or come back when a heart refills.</p>
 
         <div className="super-card">
           <div className="super-head">
