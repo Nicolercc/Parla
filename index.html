@@ -114,6 +114,10 @@ button{font-family:inherit; cursor:pointer; border:none; background:none; transi
 .home-top{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; }
 .unit-kicker{ color:var(--purple); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
 .home-title{ margin:2px 0 0; font-size:25px; line-height:1.1; font-weight:900; letter-spacing:0; }
+.home-tagline{ margin:8px 0 0; font-size:15px; font-weight:800; color:var(--text); line-height:1.35; max-width:280px; }
+.home-meta{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin-top:12px; }
+.home-goal-pill{ display:inline-flex; padding:7px 14px; border-radius:999px; background:#F3FFE8; border:2px solid var(--green-d); color:var(--green-d); font-size:13px; font-weight:900; letter-spacing:.02em; }
+.home-level-note{ margin:0; font-size:12px; font-weight:700; color:var(--text-muted); line-height:1.35; max-width:280px; }
 .stats-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
 .stat-pill{ min-width:0; background:#fff; border:2px solid var(--border); border-bottom-width:4px; border-radius:14px; padding:9px 8px; display:grid; grid-template-columns:auto 1fr; column-gap:6px; align-items:center; }
 .stat-icon{ grid-row:1 / span 2; font-size:18px; line-height:1; }
@@ -307,7 +311,11 @@ button{font-family:inherit; cursor:pointer; border:none; background:none; transi
 @keyframes swirl{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
 
 .ob{ position:relative; flex:1; display:flex; flex-direction:column; min-height:0; }
-.ob-dots{ display:flex; gap:7px; justify-content:center; padding:20px 0 0; }
+.ob-nav{ display:flex; align-items:center; padding:12px 16px 0; min-height:52px; }
+.ob-nav--spacer{ visibility:hidden; pointer-events:none; }
+.ob-nav .back-btn{ position:static; width:auto; height:auto; display:inline-flex; align-items:center; gap:6px; padding:8px 10px 8px 6px; border-radius:12px; font-size:15px; font-weight:800; color:var(--text-muted); }
+.back-btn--labeled .back-label{ line-height:1; }
+.ob-dots{ display:flex; gap:7px; justify-content:center; padding:8px 0 0; }
 .ob-dot{ width:9px; height:9px; border-radius:50%; background:#E2DDD0; transition:.2s; }
 .ob-dot--on{ background:var(--green); transform:scale(1.25); }
 .ob-dot--done{ background:var(--green-d); }
@@ -355,6 +363,7 @@ button{font-family:inherit; cursor:pointer; border:none; background:none; transi
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 
 <script src="questions.js"></script>
+<script src="profile.js"></script>
 <script type="text/babel" src="mascot.jsx"></script>
 <script type="text/babel" src="ui.jsx"></script>
 <script type="text/babel" src="screens.jsx"></script>

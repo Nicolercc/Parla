@@ -1,3 +1,5 @@
+// Pip: named guide in onboarding, home, and locked recovery (mood-based).
+// Mascot: Pip's in-lesson animated form (state-based: idle/correct/wrong/complete).
 (function () {
   const { useEffect, useRef } = React;
 

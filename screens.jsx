@@ -79,7 +79,7 @@
     );
   }
 
-  function LessonMapScreen({ account, lesson, maxHearts, refillCost, refillLabel, onStartLesson, onTryPlus, onBuyRefill, onPractice }) {
+  function LessonMapScreen({ account, lesson, homeCopy, maxHearts, refillCost, refillLabel, onStartLesson, onTryPlus, onBuyRefill, onPractice }) {
     const locked = !account.isPlus && account.hearts <= 0;
 
     return (
@@ -87,7 +87,12 @@
         <header className="home-top">
           <div>
             <div className="unit-kicker">{lesson.unit}</div>
-            <h1 className="home-title">Spanish Foundations</h1>
+            <h1 className="home-title">{homeCopy.courseTitle}</h1>
+            <p className="home-tagline">{homeCopy.tagline}</p>
+            <div className="home-meta">
+              {homeCopy.dailyGoal && <div className="home-goal-pill">{homeCopy.dailyGoal}</div>}
+              {homeCopy.levelNote && <p className="home-level-note">{homeCopy.levelNote}</p>}
+            </div>
           </div>
           <Pip mood={locked ? 'sad' : 'idle'} size={68} />
         </header>
@@ -150,9 +155,11 @@
     return 1;
   }
 
-  function ResultScreen({ score, total, hearts, xpEarned, gemsEarned, onContinue, onPractice }) {
+  function ResultScreen({ score, total, hearts, xpEarned, gemsEarned, passed, onContinue, onPractice }) {
     const stars = starCount(score, total);
     const [shown, setShown] = useState(0);
+    const didPass = passed !== undefined ? passed : score >= Math.ceil(total * 0.6);
+    const copy = window.PARLA_COPY.resultCopy(didPass);
 
     useEffect(() => {
       setShown(0);
@@ -161,11 +168,9 @@
       return () => timers.forEach(clearTimeout);
     }, [stars]);
 
-    const passed = score >= Math.ceil(total * 0.6);
-
     return (
       <div className="screen screen--center result">
-        <Confetti run={passed} />
+        <Confetti run={didPass} />
         <div className="result-stars">
           {[0, 1, 2].map((i) => (
             <span key={i} className={'star-slot ' + (shown > i ? 'pop' : '')}>
@@ -174,10 +179,10 @@
           ))}
         </div>
         <div className="result-mascot">
-          <Mascot state={passed ? 'complete' : 'wrong'} size={150} />
+          <Mascot state={didPass ? 'complete' : 'wrong'} size={150} />
         </div>
-        <h1 className="result-title font-display">{passed ? 'Lesson complete!' : 'Practice unlocked'}</h1>
-        <p className="result-sub">{passed ? 'You earned progress on the path.' : 'Review earns hearts without spending hearts.'}</p>
+        <h1 className="result-title font-display">{copy.title}</h1>
+        <p className="result-sub">{copy.sub}</p>
         <div className="result-scorecard">
           <div className="score-pill">
             <span className="score-num font-display">{score}<span className="score-den">/{total}</span></span>
@@ -210,7 +215,7 @@
           <Pip mood="sad" size={132} />
         </div>
         <h1 className="locked-title font-display">You’re out of hearts</h1>
-        <p className="locked-sub">Hearts are the pressure point: wait, earn, spend gems, or upgrade.</p>
+        <p className="locked-sub">Pip will wait with you. Practice, spend gems, upgrade, or come back when a heart refills.</p>
 
         <div className="super-card">
           <div className="super-head">
@@ -249,66 +254,11 @@
     );
   }
 
-  const LANGUAGES = [
-    { id: 'es', flag: '🇪🇸', name: 'Spanish', available: true },
-    { id: 'fr', flag: '🇫🇷', name: 'French', available: false },
-    { id: 'ja', flag: '🇯🇵', name: 'Japanese', available: false },
-    { id: 'zh', flag: '🇨🇳', name: 'Mandarin', available: false },
-    { id: 'pt', flag: '🇧🇷', name: 'Portuguese', available: false },
-    { id: 'it', flag: '🇮🇹', name: 'Italian', available: false },
-  ];
-
-  function LandingScreen({ onNext }) {
-    const { PillButton, GhostLink } = window;
-
-    return (
-      <div className="screen landing screen-fade">
-        <div className="landing-body">
-          <div className="landing-mascot landing-enter-mascot">
-            <Mascot state="idle" size={148} />
-          </div>
-          <h1 className="landing-headline landing-enter-headline">Learn Spanish through daily streaks.</h1>
-          <p className="landing-sub landing-enter-sub">A sharper clone of the quiz, hearts, XP, and premium loop.</p>
-        </div>
-        <div className="landing-actions landing-enter-cta">
-          <PillButton label="Get Started" onClick={onNext} />
-          <GhostLink label="I already have an account" onClick={onNext} />
-        </div>
-      </div>
-    );
-  }
-
-  function LanguageSelectScreen({ onNext, onBack }) {
-    const { BackButton, LanguageCard } = window;
-
-    return (
-      <div className="screen language screen-fade">
-        <header className="lang-header">
-          <BackButton onClick={onBack} />
-          <h1 className="lang-title">Choose your course</h1>
-        </header>
-        <div className="lang-grid">
-          {LANGUAGES.map((lang) => (
-            <LanguageCard
-              key={lang.id}
-              flag={lang.flag}
-              name={lang.name}
-              available={lang.available}
-              onSelect={() => onNext(lang.id)}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   Object.assign(window, {
     ResultScreen,
     LockedScreen,
     Confetti,
     Star,
-    LandingScreen,
-    LanguageSelectScreen,
     LessonMapScreen,
     QuizMascot,
   });

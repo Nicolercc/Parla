@@ -25,13 +25,13 @@ Parla is a mobile-first, Duolingo-inspired language learning web app. Users comp
 
 | Area | Details |
 |------|---------|
-| **Landing screen** | Pip mascot, headline/subhead, “Get Started” pill CTA, ghost “I already have an account” link, staggered entrance animations, dark navy theme |
-| **Language selection** | Back navigation to landing, 2-column grid, Spanish tappable, 5 languages grayed with “Coming soon” badge |
-| **Quiz loop** | 10 questions from `questions.js`, option select → Check → feedback bar → Continue, progress bar, 3 hearts, mascot mood + speech bubble |
-| **Result screen** | Star rating (1–3), score/XP display, confetti when hearts remain, “Practice again” resets quiz in-place |
-| **Locked screen** | Shown when hearts hit 0 mid-quiz; countdown timer UI, Parla+ upsell card, “start over with full hearts” works |
-| **Deployment** | Static Vercel deploy, production URL live, GitHub repo linked to Vercel project |
-| **Local dev** | `npm run dev` serves static files via `npx serve` |
+| **Onboarding (6 steps)** | Neutral Pip welcome → language → source → reason → level → daily goal; back navigation on steps 1–5; full profile persisted to `parla.account.v2` |
+| **Home / lesson map** | Personalized course title, reason tagline, daily goal pill, level note; streak/gems/hearts; unit path with one live lesson |
+| **Quiz loop** | 10 questions from `PARLA_LESSONS[0]`, Check → feedback → Continue, 5 hearts, progress bar, Pip-branded bubble copy |
+| **Result screen** | Star rating, pass/fail copy, confetti on pass, reduced rewards on fail |
+| **Locked screen** | Feedback-before-lock on last heart; practice/refill/Plus recovery returns home |
+| **Persistence** | `localStorage` account v2: economy + onboarding profile fields |
+| **Deployment** | Static Vercel deploy; `npm run dev` + `npm run test` (source smoke) |
 
 ### Partially working
 
@@ -72,9 +72,11 @@ Parla is a mobile-first, Duolingo-inspired language learning web app. Users comp
 
 | File | Purpose | Exports / key symbols | Dependencies | Notes / gotchas |
 |------|---------|----------------------|--------------|-----------------|
-| **`index.html`** | Single-page entry: meta, Nunito font, all global CSS (~280 lines), script load order, `#root` mount point | None (not a module) | CDN: React 18.3.1, ReactDOM, Babel Standalone 7.29.0; local scripts below | **Load order matters:** `questions.js` → `mascot.jsx` → `ui.jsx` → `screens.jsx` → `app.jsx`. All CSS is inline; no external stylesheet except Google Fonts. |
-| **`app.jsx`** | Root React app: top-level routing, quiz hook, quiz UI composition | Mounts `<App />` via `ReactDOM.createRoot` (nothing on `window`) | `React`, `ReactDOM`, `window.PARLA_QUESTIONS`, `window.Pip`, `window.ProgressBar`, `window.HeartsDisplay`, `window.OptionButton`, `window.QuestionCard`, `window.FeedbackBar`, `window.ActionButton`, `window.ResultScreen`, `window.LockedScreen`, `window.LandingScreen`, `window.LanguageSelectScreen` | `CONFIG` object controls hearts count, mascot visibility, option grid columns, accent colors. `useQuizState` is **not** exported. `goTo('quiz')` always calls `resetQuiz()` first. |
-| **`screens.jsx`** | Full-screen flows: onboarding, results, monetization gate | `window.ResultScreen`, `LockedScreen`, `Confetti`, `Star`, `LandingScreen`, `LanguageSelectScreen` | `React`, `window.Pip`, `window.PillButton`, `window.GhostLink`, `window.BackButton`, `window.LanguageCard` (read at render time for onboarding screens) | `LANGUAGES` array is module-local. `REFILL_SECONDS = 14400` (4 hours). `Confetti`/`Star` exported but only used internally. |
+| **`index.html`** | Single-page entry: meta, Nunito font, all global CSS, script load order, `#root` mount point | None (not a module) | CDN: React 18.3.1, ReactDOM, Babel Standalone 7.29.0; local scripts below | **Load order:** `questions.js` → `profile.js` → `mascot.jsx` → `ui.jsx` → `screens.jsx` → `onboarding.jsx` → `app.jsx`. |
+| **`profile.js`** | Onboarding metadata + home personalization + Pip copy helpers | `window.PARLA_META`, `window.PARLA_COPY` | None | Single source for language list, reason taglines, goal minutes. |
+| **`app.jsx`** | Root React app: routing, economy, quiz hook | Mounts `<App />` | `PARLA_LESSONS`, `OnboardingFlow`, `PARLA_META`, `PARLA_COPY`, screen/UI exports | `parla.account.v2` stores economy + onboarding profile. Phases: onboarding → home → quiz. |
+| **`onboarding.jsx`** | 6-step first-run flow | `window.OnboardingFlow` | `PARLA_META`, `Pip`, `ActionButton`, `BackButton` | Back on steps 1–5; neutral welcome before language pick. |
+| **`screens.jsx`** | Home map, results, locked recovery | `ResultScreen`, `LockedScreen`, `LessonMapScreen`, `QuizMascot` | `Pip`, `Mascot`, `PARLA_COPY` (result) | Legacy `LandingScreen` / `LanguageSelectScreen` removed. |
 | **`ui.jsx`** | Reusable UI primitives for quiz and onboarding | `window.Heart`, `ProgressBar`, `HeartsDisplay`, `OptionButton`, `QuestionCard`, `FeedbackBar`, `ActionButton`, `BackButton`, `PillButton`, `GhostLink`, `LanguageCard` | `React` only | `getOptionState()` is module-private. Option keys hardcoded A–D (assumes ≤4 options). `Heart` gradient id collision risk. |
 | **`mascot.jsx`** | SVG mascot “Pip” with mood-driven face/animations | `window.Pip` | `React` | Moods: `idle`, `thinking`, `happy`, `sad`, `dizzy`. `dizzy` is implemented but **never used** by app. Retriggers CSS react animation on mood change via `pip-react` class. |
 | **`questions.js`** | Static question bank | `window.PARLA_QUESTIONS` (array of 10 objects) | None | Must load before `app.jsx`. No validation at runtime. |
@@ -106,47 +108,36 @@ Parla is a mobile-first, Duolingo-inspired language learning web app. Users comp
 
 Two independent state layers drive the UI:
 
-1. **`appPhase`** (`app.jsx`) — top-level navigation: `'landing' | 'language' | 'quiz'`
+1. **`appPhase`** (`app.jsx`) — top-level navigation: `'onboarding' | 'home' | 'quiz'`
 2. **`phase`** inside `useQuizState` — quiz sub-states: `'quiz' | 'locked' | 'complete'`
 
 ### Journey diagram
 
 ```
-┌─────────────┐   Get Started /        ┌──────────────────┐   Tap Spanish    ┌─────────────┐
-│  LANDING    │── "I have account" ───▶│ LANGUAGE SELECT  │─────────────────▶│    QUIZ     │
-│ LandingScreen│   onNext('language')  │LanguageSelectScreen│ onNext('quiz') │ QuizScreen  │
-└─────────────┘                        └────────▲─────────┘                  └──────┬──────┘
-                                                │                                    │
-                                     BackButton │ onBack('landing')                │
-                                                │                                    │
-                           ┌────────────────────┘                    ┌───────────────┼───────────────┐
-                           │                                         │               │               │
-                           │                              hearts → 0 │  all Q done   │  ✕ or Practice│
-                           │                                         ▼               ▼               │
-                           │                                  ┌────────────┐   ┌────────────┐        │
-                           │                                  │   LOCKED   │   │  COMPLETE  │        │
-                           │                                  │LockedScreen│   │ResultScreen│        │
-                           │                                  └─────┬──────┘   └──────┬─────┘        │
-                           │                                        │ resetQuiz       │ resetQuiz     │
-                           │                                        └─────────────────┴───────────────┘
-                           │                                                  (stays appPhase='quiz')
-                           └──────────────── (only via language screen back button today)
+┌──────────────┐  6 steps + back   ┌─────────────┐  start lesson  ┌─────────────┐
+│ ONBOARDING   │──────────────────▶│    HOME     │───────────────▶│    QUIZ     │
+│OnboardingFlow│  completeOnboarding │LessonMap    │                │ QuizScreen  │
+└──────────────┘  → localStorage     └──────▲──────┘                └──────┬──────┘
+       ▲                                  │                              │
+       │ hasStarted=false                   │ return user                  │ hearts→0 / done
+       └──────── refresh ──────────────────┘                              ▼
+                                                                  ┌────────────┐
+                                                                  │ LOCKED or  │
+                                                                  │ COMPLETE   │
+                                                                  └─────┬──────┘
+                                                                        │ ✕ / recovery → home
 ```
 
 ### Phase-by-phase detail
 
 | Step | Component | User action | State transition |
 |------|-----------|-------------|------------------|
-| 1. Landing | `LandingScreen` | Tap “Get Started” or ghost link | `appPhase`: `'landing'` → `'language'` via `goTo('language')` |
-| 2. Language | `LanguageSelectScreen` | Tap back chevron | `appPhase`: `'language'` → `'landing'` via `goTo('landing')` |
-| 2. Language | `LanguageSelectScreen` | Tap Spanish card | `goTo('quiz')` → **`resetQuiz()`** then `appPhase = 'quiz'` |
-| 3. Quiz (active) | `QuizScreen` | Select option | `selectedOption` set (if not checked) |
-| 3. Quiz | `QuizScreen` | Tap Check | `checkAnswer()` → `isChecked=true`, score++ or hearts-- |
-| 3. Quiz | `QuizScreen` | Tap Continue (feedback bar) | `advance()` → next question or `phase='complete'` |
-| 3. Quiz | `QuizScreen` | Wrong until hearts=0 | `phase='locked'` → renders `LockedScreen` |
-| 4a. Locked | `LockedScreen` | “start over with full hearts” | `resetQuiz()` → `phase='quiz'`, hearts=3, index=0 |
-| 4b. Complete | `ResultScreen` | “Practice again” | `resetQuiz()` → same quiz, fresh state |
-| Any quiz | Top-left ✕ | Tap | `resetQuiz()` only — **does not change `appPhase`** |
+| 1. Onboarding | `OnboardingFlow` | Complete 6 steps (back on 1–5) | `completeOnboarding(profile)` → `appPhase = 'home'` |
+| 2. Home | `LessonMapScreen` | Tap lesson node | `startLesson()` → `appPhase = 'quiz'` (or locked if 0 hearts) |
+| 3. Quiz | `QuizScreen` | Check → Continue | `advance()`; last-heart wrong defers lock until Continue |
+| 4a. Locked | `LockedScreen` | Practice / refill / Plus / ✕ | Recovery → `goHome()` |
+| 4b. Complete | `ResultScreen` | Continue | `goHome()` |
+| Return visit | — | Load app | `hasStarted` → skip onboarding → `home` |
 
 ---
 
@@ -156,7 +147,7 @@ Two independent state layers drive the UI:
 
 | State | Type | Initial | Mutations |
 |-------|------|---------|-----------|
-| `appPhase` | `'landing' \| 'language' \| 'quiz'` | `'landing'` | `setAppPhase` via `goTo(phase)` |
+| `appPhase` | `'onboarding' \| 'home' \| 'quiz'` | `onboarding` if `!hasStarted` else `home` | `setAppPhase` |
 
 **`goTo(phase)` behavior:**
 - If `phase === 'quiz'`, calls `q.resetQuiz()` first (full quiz reset)

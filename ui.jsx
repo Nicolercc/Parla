@@ -111,15 +111,19 @@
   }
 
   function FeedbackBar({ isVisible, isCorrect, correctAnswer, explanation, onContinue }) {
+    if (!isVisible) return null;
+
+    const tone = isCorrect ? 'feedback--ok' : 'feedback--no';
+
     return (
-      <div className={'feedback ' + (isVisible ? 'feedback--in ' : '') + (isCorrect ? 'feedback--ok' : 'feedback--no')}>
+      <div className={'feedback feedback--in ' + tone}>
         <div className="feedback-inner">
           <div className="feedback-row">
             <span className={'feedback-badge ' + (isCorrect ? 'fb-ok' : 'fb-no')}>{isCorrect ? '✓' : '✕'}</span>
             <div className="feedback-text">
-              <div className="feedback-title font-display">{isCorrect ? '¡Excelente!' : 'Not quite'}</div>
+              <div className="feedback-title font-display">{isCorrect ? 'Correct' : 'Good try'}</div>
               <div className="feedback-sub">
-                {isCorrect ? (explanation || 'Nice work.') : <span>Answer: <b>{correctAnswer}</b>. {explanation}</span>}
+                {isCorrect ? (explanation || 'Nice work — keep going.') : <span>Correct answer: <b>{correctAnswer}</b>. {explanation}</span>}
               </div>
             </div>
           </div>
@@ -144,12 +148,13 @@
     );
   }
 
-  function BackButton({ onClick, label = 'Back' }) {
+  function BackButton({ onClick, label = 'Back', showLabel = false }) {
     return (
-      <button type="button" className="back-btn" onClick={onClick} aria-label={label}>
+      <button type="button" className={'back-btn' + (showLabel ? ' back-btn--labeled' : '')} onClick={onClick} aria-label={label}>
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
           <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
+        {showLabel && <span className="back-label">Back</span>}
       </button>
     );
   }
