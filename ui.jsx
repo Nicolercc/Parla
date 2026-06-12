@@ -3,7 +3,7 @@
 
   const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
-  function Heart({ filled, broken }) {
+  function Heart({ filled, broken, gradientId = 'hg' }) {
     return (
       <svg
         className={'heart ' + (filled ? 'heart--on' : 'heart--off') + (broken ? ' heart--break' : '')}
@@ -13,14 +13,14 @@
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#FF7E97" />
             <stop offset="1" stopColor="#FF3D63" />
           </linearGradient>
         </defs>
         <path
           d="M16 28C16 28 2 19.5 2 10.4 2 5.5 5.8 2 10 2c2.6 0 4.8 1.3 6 3.3C17.2 3.3 19.4 2 22 2c4.2 0 8 3.5 8 8.4C30 19.5 16 28 16 28Z"
-          fill={filled ? 'url(#hg)' : '#30363D'}
+          fill={filled ? 'url(#' + gradientId + ')' : '#30363D'}
           stroke={filled ? '#E5274C' : '#484F58'}
           strokeWidth="1.5"
         />
@@ -38,7 +38,8 @@
   }
 
   function ProgressBar({ current, total }) {
-    const pct = Math.max(0, Math.min(100, (current / total) * 100));
+    const raw = total > 0 ? (current / total) * 100 : 0;
+    const pct = current > 0 ? Math.max(4, Math.min(100, raw)) : 0;
     return (
       <div className="progress" role="progressbar" aria-valuenow={current} aria-valuemax={total}>
         <div className="progress-fill" style={{ width: pct + '%' }}>
@@ -48,7 +49,7 @@
     );
   }
 
-  function HeartsDisplay({ hearts, maxHearts = 3 }) {
+  function HeartsDisplay({ hearts, maxHearts = 5 }) {
     const prev = useRef(hearts);
     const [pulse, setPulse] = useState(false);
 
@@ -64,9 +65,9 @@
 
     return (
       <div className={'hearts ' + (pulse ? 'hearts--lost' : '')}>
-        {Array.from({ length: maxHearts }).map((_, i) => (
-          <Heart key={i} filled={i < hearts} broken={i === hearts && pulse} />
-        ))}
+        {          Array.from({ length: maxHearts }).map((_, i) => (
+            <Heart key={i} gradientId={'hg-' + i} filled={i < hearts} broken={i === hearts && pulse} />
+          ))}
       </div>
     );
   }
