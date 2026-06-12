@@ -2,6 +2,8 @@
   const { useState, useCallback, useEffect, useMemo } = React;
   const LESSONS = window.PARLA_LESSONS;
   const OnboardingFlow = window.OnboardingFlow;
+  const { personalizeHome, isProfileComplete } = window.PARLA_META;
+  const { quizBubble } = window.PARLA_COPY;
   const {
     ProgressBar,
     HeartsDisplay,
@@ -11,8 +13,6 @@
     ActionButton,
     ResultScreen,
     LockedScreen,
-    LandingScreen,
-    LanguageSelectScreen,
     LessonMapScreen,
     QuizMascot,
   } = window;
@@ -37,8 +37,12 @@
     return {
       hasStarted: false,
       selectedLanguage: null,
+      source: null,
+      reason: null,
+      level: null,
+      dailyGoal: null,
       hearts: CONFIG.maxHearts,
-      gems: 520,
+      gems: 120,
       xp: 0,
       streak: 0,
       completedLessons: 0,
@@ -50,7 +54,8 @@
 
   function loadAccount() {
     try {
-      return { ...defaultAccount(), ...JSON.parse(localStorage.getItem(STORE_KEY) || '{}') };
+      const stored = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+      return { ...defaultAccount(), ...stored };
     } catch (error) {
       return defaultAccount();
     }
@@ -112,8 +117,16 @@
       setAccount((current) => applyHeartRefills(recipe(applyHeartRefills(current))));
     }, []);
 
-    const start = useCallback((languageId) => {
-      update((current) => ({ ...current, hasStarted: true, selectedLanguage: languageId || 'es' }));
+    const completeOnboarding = useCallback((profile) => {
+      update((current) => ({
+        ...current,
+        hasStarted: true,
+        selectedLanguage: profile.language || profile.selectedLanguage || 'es',
+        source: profile.source || null,
+        reason: profile.reason || null,
+        level: profile.level || null,
+        dailyGoal: profile.dailyGoal || profile.goal || null,
+      }));
     }, [update]);
 
     const loseHeart = useCallback(() => {
@@ -133,19 +146,25 @@
       update((current) => {
         const today = todayKey();
         const yesterday = todayKey(Date.now() - DAY_MS);
-        const streak = current.lastPlayedDate === today
-          ? current.streak
-          : current.lastPlayedDate === yesterday
-            ? current.streak + 1
-            : 1;
+        let streak = current.streak;
+        let lastPlayedDate = current.lastPlayedDate;
+
+        if (passed) {
+          streak = current.lastPlayedDate === today
+            ? current.streak
+            : current.lastPlayedDate === yesterday
+              ? current.streak + 1
+              : 1;
+          lastPlayedDate = today;
+        }
 
         return {
           ...current,
-          xp: current.xp + lesson.xp + score * 2,
-          gems: current.gems + (passed ? 25 : 8),
+          xp: current.xp + (passed ? lesson.xp + score * 2 : score),
+          gems: current.gems + (passed ? 25 : 5),
           streak,
           completedLessons: passed ? Math.max(current.completedLessons, 1) : current.completedLessons,
-          lastPlayedDate: today,
+          lastPlayedDate,
         };
       });
     }, [update]);
@@ -173,7 +192,7 @@
     return {
       account,
       now,
-      start,
+      completeOnboarding,
       loseHeart,
       completeLesson,
       buyRefill,
@@ -270,10 +289,13 @@
     };
   }
 
-  function bubbleText({ isChecked, isCorrect, hearts }) {
-    if (!isChecked && hearts <= 1) return 'Last heart. Focus.';
-    if (!isChecked) return 'You got this.';
-    return isCorrect ? 'Nice!' : 'Review it once.';
+  function lessonRewards(lesson, score, total) {
+    const passed = score >= Math.ceil(total * 0.6);
+    return {
+      passed,
+      xpEarned: passed ? lesson.xp + score * 2 : score,
+      gemsEarned: passed ? 25 : 5,
+    };
   }
 
   function QuizScreen({ q, account, economy, lesson, rootStyle, onExit }) {
@@ -300,14 +322,15 @@
     }
 
     if (q.phase === 'complete') {
-      const passed = q.score >= Math.ceil(q.total * 0.6);
+      const rewards = lessonRewards(lesson, q.score, q.total);
       return (
         <ResultScreen
           score={q.score}
           total={q.total}
           hearts={account.hearts}
-          xpEarned={lesson.xp + q.score * 2}
-          gemsEarned={passed ? 25 : 8}
+          passed={rewards.passed}
+          xpEarned={rewards.xpEarned}
+          gemsEarned={rewards.gemsEarned}
           onContinue={onExit}
           onPractice={q.resetQuiz}
         />
@@ -336,7 +359,7 @@
             size={104}
           />
           <div className={'bubble ' + (q.isChecked ? (q.isCorrect ? 'bubble--ok' : 'bubble--no') : '')}>
-            {bubbleText({ isChecked: q.isChecked, isCorrect: q.isCorrect, hearts: account.hearts })}
+            {quizBubble({ isChecked: q.isChecked, isCorrect: q.isCorrect, hearts: account.hearts })}
           </div>
         </div>
 
@@ -376,7 +399,7 @@
 
   function initialPhase() {
     const acc = loadAccount();
-    if (!acc.hasStarted) return 'onboarding';
+    if (!isProfileComplete(acc)) return 'onboarding';
     return 'home';
   }
 
@@ -385,6 +408,7 @@
     const { account } = economy;
     const [appPhase, setAppPhase] = useState(initialPhase);
     const lesson = LESSONS[0];
+    const homeCopy = useMemo(() => personalizeHome(account), [account]);
     const q = useQuizState({
       lesson,
       account,
@@ -399,12 +423,7 @@
     }, [q.resetQuiz]);
 
     const finishOnboarding = useCallback((profile) => {
-      economy.start(profile.language || 'es');
-      setAppPhase('home');
-    }, [economy]);
-
-    const beginLanguage = useCallback((languageId) => {
-      economy.start(languageId);
+      economy.completeOnboarding(profile);
       setAppPhase('home');
     }, [economy]);
 
@@ -422,18 +441,16 @@
       <div className="app">
         <div className={'phone' + (appPhase === 'quiz' ? ' phone--quiz' : '')}>
           {appPhase === 'onboarding' && (
-            <OnboardingFlow onComplete={finishOnboarding} />
-          )}
-          {appPhase === 'landing' && (
-            <LandingScreen onNext={() => setAppPhase('language')} />
-          )}
-          {appPhase === 'language' && (
-            <LanguageSelectScreen onNext={beginLanguage} onBack={() => setAppPhase('landing')} />
+            <OnboardingFlow
+              initialProfile={account}
+              onComplete={finishOnboarding}
+            />
           )}
           {appPhase === 'home' && (
             <LessonMapScreen
               account={account}
               lesson={lesson}
+              homeCopy={homeCopy}
               maxHearts={CONFIG.maxHearts}
               refillCost={CONFIG.refillCost}
               refillLabel={economy.refillLabel}

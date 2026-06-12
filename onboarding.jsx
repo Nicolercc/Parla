@@ -2,45 +2,8 @@
   const { useState } = React;
   const Pip = window.Pip;
   const ActionButton = window.ActionButton;
-
-  const LANGUAGES = [
-    { id: 'es', name: 'Spanish',    learners: '34M learners', enabled: true },
-    { id: 'fr', name: 'French',     learners: '17M learners', enabled: false },
-    { id: 'ja', name: 'Japanese',   learners: '12M learners', enabled: false },
-    { id: 'de', name: 'German',     learners: '9M learners',  enabled: false },
-    { id: 'it', name: 'Italian',    learners: '7M learners',  enabled: false },
-    { id: 'pt', name: 'Portuguese', learners: '5M learners',  enabled: false },
-  ];
-
-  const GOALS = [
-    { id: 'casual',  label: 'Casual',  detail: '5 min / day' },
-    { id: 'regular', label: 'Regular', detail: '10 min / day' },
-    { id: 'serious', label: 'Serious', detail: '15 min / day' },
-    { id: 'intense', label: 'Intense', detail: '20 min / day' },
-  ];
-
-  const SOURCES = [
-    { id: 'friends',   emoji: '👥', label: 'Friends / family' },
-    { id: 'tiktok',    emoji: '🎵', label: 'TikTok' },
-    { id: 'youtube',   emoji: '▶️', label: 'YouTube' },
-    { id: 'instagram', emoji: '📸', label: 'Instagram' },
-    { id: 'search',    emoji: '🔍', label: 'Google Search' },
-    { id: 'other',     emoji: '✨', label: 'Other' },
-  ];
-
-  const REASONS = [
-    { id: 'people', emoji: '🗣️', label: 'Connect with people' },
-    { id: 'career', emoji: '💼', label: 'Boost my career' },
-    { id: 'school', emoji: '🎓', label: 'Support my education' },
-    { id: 'travel', emoji: '✈️', label: 'Prepare for travel' },
-    { id: 'fun',    emoji: '🎉', label: 'Just for fun' },
-    { id: 'brain',  emoji: '🧠', label: 'Train my brain' },
-  ];
-
-  const LEVELS = (lang) => [
-    { id: 'new',  emoji: '🌱', label: 'I’m new to ' + lang,      detail: 'Start from the very beginning' },
-    { id: 'some', emoji: '📚', label: 'I know some ' + lang, detail: 'Jump in with the basics quiz' },
-  ];
+  const BackButton = window.BackButton;
+  const { LANGUAGES, GOALS, SOURCES, REASONS, levelsFor } = window.PARLA_META;
 
   function Flag({ id }) {
     const flags = {
@@ -108,13 +71,22 @@
     );
   }
 
+  function ObNav({ showBack, onBack }) {
+    if (!showBack) return <div className="ob-nav ob-nav--spacer" aria-hidden="true" />;
+    return (
+      <div className="ob-nav">
+        <BackButton onClick={onBack} label="Back to previous step" showLabel />
+      </div>
+    );
+  }
+
   function WelcomeStep({ onContinue }) {
     return (
       <div className="screen screen--center ob-welcome">
         <Pip mood="happy" size={170} />
-        <h1 className="ob-title font-display">&iexcl;Hola! I&rsquo;m Pip.</h1>
+        <h1 className="ob-title font-display">Hi, I&rsquo;m Pip.</h1>
         <p className="ob-sub">
-          Just 5 minutes a day is all it takes to learn a new language. Ready? Let&rsquo;s set you up.
+          A few minutes a day is enough to build a language habit. Let&rsquo;s personalize your path.
         </p>
         <div className="ob-cta">
           <ActionButton label="Continue" onClick={onContinue} variant="green" />
@@ -123,9 +95,10 @@
     );
   }
 
-  function LanguageStep({ selected, onSelect, onContinue }) {
+  function LanguageStep({ selected, onSelect, onContinue, onBack }) {
     return (
       <div className="screen ob-step">
+        <ObNav showBack onBack={onBack} />
         <div className="ob-head">
           <h1 className="ob-title font-display">What do you want to learn?</h1>
         </div>
@@ -157,9 +130,10 @@
     );
   }
 
-  function SurveyStep({ title, sub, options, selected, onSelect, onContinue, cta }) {
+  function SurveyStep({ title, sub, options, selected, onSelect, onContinue, onBack, cta }) {
     return (
       <div className="screen ob-step">
+        <ObNav showBack onBack={onBack} />
         <div className="ob-head">
           <h1 className="ob-title font-display">{title}</h1>
           {sub && <p className="ob-sub">{sub}</p>}
@@ -173,7 +147,7 @@
                 className={'goal-row ' + (selected === opt.id ? 'goal-row--sel' : '')}
                 onClick={() => onSelect(opt.id)}
               >
-                <span className="row-emoji" aria-hidden="true">{opt.emoji}</span>
+                {opt.emoji && <span className="row-emoji" aria-hidden="true">{opt.emoji}</span>}
                 <span className="row-text">
                   <span className="goal-label">{opt.label}</span>
                   {opt.detail && <span className="row-detail">{opt.detail}</span>}
@@ -189,12 +163,13 @@
     );
   }
 
-  function GoalStep({ selected, onSelect, onContinue }) {
+  function GoalStep({ selected, onSelect, onContinue, onBack }) {
     return (
       <div className="screen ob-step">
+        <ObNav showBack onBack={onBack} />
         <div className="ob-head">
           <h1 className="ob-title font-display">Pick a daily goal</h1>
-          <p className="ob-sub">You can always change this later.</p>
+          <p className="ob-sub">Pip will remind you on your home path. You can change this later.</p>
         </div>
         <div className="ob-scroll">
           <div className="goal-list">
@@ -205,8 +180,10 @@
                 className={'goal-row ' + (selected === goal.id ? 'goal-row--sel' : '')}
                 onClick={() => onSelect(goal.id)}
               >
-                <span className="goal-label">{goal.label}</span>
-                <span className="goal-detail">{goal.detail}</span>
+                <span className="row-text">
+                  <span className="goal-label">{goal.label}</span>
+                  <span className="goal-detail">{goal.detail}</span>
+                </span>
               </button>
             ))}
           </div>
@@ -218,22 +195,28 @@
     );
   }
 
-  function OnboardingFlow({ onComplete }) {
+  function OnboardingFlow({ onComplete, initialProfile = {} }) {
     const [step, setStep] = useState(0);
-    const [language, setLanguage] = useState(null);
-    const [source, setSource] = useState(null);
-    const [reason, setReason] = useState(null);
-    const [level, setLevel] = useState(null);
-    const [goal, setGoal] = useState(null);
+    const [language, setLanguage] = useState(initialProfile.language || initialProfile.selectedLanguage || null);
+    const [source, setSource] = useState(initialProfile.source || null);
+    const [reason, setReason] = useState(initialProfile.reason || null);
+    const [level, setLevel] = useState(initialProfile.level || null);
+    const [goal, setGoal] = useState(initialProfile.dailyGoal || initialProfile.goal || null);
 
     const langName = language ? LANGUAGES.find((l) => l.id === language).name : '';
+    const goBack = () => setStep((s) => Math.max(0, s - 1));
 
     return (
       <div className="ob">
         <StepDots step={step} total={6} />
         {step === 0 && <WelcomeStep onContinue={() => setStep(1)} />}
         {step === 1 && (
-          <LanguageStep selected={language} onSelect={setLanguage} onContinue={() => setStep(2)} />
+          <LanguageStep
+            selected={language}
+            onSelect={setLanguage}
+            onContinue={() => setStep(2)}
+            onBack={goBack}
+          />
         )}
         {step === 2 && (
           <SurveyStep
@@ -242,6 +225,7 @@
             selected={source}
             onSelect={setSource}
             onContinue={() => setStep(3)}
+            onBack={goBack}
           />
         )}
         {step === 3 && (
@@ -251,23 +235,26 @@
             selected={reason}
             onSelect={setReason}
             onContinue={() => setStep(4)}
+            onBack={goBack}
           />
         )}
         {step === 4 && (
           <SurveyStep
             title={'Where are you in your ' + langName + ' studies?'}
-            sub="Let’s pick a starting point — you can change this later."
-            options={LEVELS(langName)}
+            sub="We use this to personalize your home screen. Lesson 1 is the same starter path for now."
+            options={levelsFor(langName)}
             selected={level}
             onSelect={setLevel}
             onContinue={() => setStep(5)}
+            onBack={goBack}
           />
         )}
         {step === 5 && (
           <GoalStep
             selected={goal}
             onSelect={setGoal}
-            onContinue={() => onComplete({ language, source, reason, level, goal })}
+            onContinue={() => onComplete({ language, source, reason, level, dailyGoal: goal })}
+            onBack={goBack}
           />
         )}
       </div>

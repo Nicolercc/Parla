@@ -17,6 +17,7 @@ function assert(condition, message) {
 const context = { window: {} };
 vm.createContext(context);
 vm.runInContext(read('questions.js'), context, { filename: 'questions.js' });
+vm.runInContext(read('profile.js'), context, { filename: 'profile.js' });
 
 const lessons = context.window.PARLA_LESSONS;
 assert(Array.isArray(lessons) && lessons.length > 0, 'PARLA_LESSONS must be a non-empty array');
@@ -41,12 +42,22 @@ const screens = read('screens.jsx');
 const ui = read('ui.jsx');
 const onboarding = read('onboarding.jsx');
 
-for (const file of ['app.jsx', 'screens.jsx', 'ui.jsx', 'onboarding.jsx']) {
+for (const file of ['app.jsx', 'screens.jsx', 'ui.jsx', 'onboarding.jsx', 'profile.js']) {
   assert(!read(file).includes('<<<<<<<'), `${file} must not contain merge conflict markers`);
 }
 
 assert(onboarding.includes('function OnboardingFlow'), 'onboarding.jsx must define OnboardingFlow');
 assert(app.includes('OnboardingFlow'), 'app.jsx must wire OnboardingFlow');
+assert(app.includes('completeOnboarding'), 'app.jsx must persist full onboarding profile');
+assert(!app.includes('LandingScreen'), 'app.jsx must not wire legacy landing flow');
+assert(!screens.includes('function LandingScreen'), 'screens.jsx must not define legacy LandingScreen');
+assert(context.window.PARLA_META && context.window.PARLA_COPY, 'profile.js must export PARLA_META and PARLA_COPY');
+assert(typeof context.window.PARLA_META.isProfileComplete === 'function', 'profile.js must export isProfileComplete');
+assert(app.includes('isProfileComplete'), 'app.jsx must gate home on complete profile');
+
+for (const field of ['selectedLanguage', 'source', 'reason', 'level', 'dailyGoal']) {
+  assert(app.includes(field), `app.jsx account must include ${field}`);
+}
 
 for (const required of ['LessonMapScreen', 'LockedScreen', 'ResultScreen']) {
   assert(app.includes(required), `app.jsx must wire ${required}`);
@@ -57,4 +68,14 @@ for (const required of ['HeartsDisplay', 'FeedbackBar', 'QuestionCard']) {
   assert(ui.includes(required), `ui.jsx must define/export ${required}`);
 }
 
-console.log(`Validated ${lessons.length} lesson pack(s) and core UI exports.`);
+const sample = context.window.PARLA_META.personalizeHome({
+  selectedLanguage: 'es',
+  reason: 'travel',
+  level: 'new',
+  dailyGoal: 'casual',
+});
+assert(sample.courseTitle.includes('Spanish'), 'personalizeHome must reflect selected language');
+assert(sample.tagline.toLowerCase().includes('travel'), 'personalizeHome must reflect reason');
+assert(sample.dailyGoal.includes('5'), 'personalizeHome must reflect daily goal');
+
+console.log(`Validated ${lessons.length} lesson pack(s), profile spine, and core UI exports.`);

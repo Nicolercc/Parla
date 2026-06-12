@@ -2,8 +2,8 @@ window.PARLA_LESSONS = [
   {
     id: 'basics-1',
     unit: 'Unit 1',
-    title: 'Order coffee',
-    subtitle: 'Greetings, food, and polite phrases',
+    title: 'Essential words',
+    subtitle: 'Colors, greetings, and everyday nouns',
     xp: 15,
     questions: [
       { id: 1, type: 'choice', prompt: 'apple', instruction: 'How do you say this in Spanish?', options: ['manzana', 'naranja', 'uva', 'pera'], correctIndex: 0, explain: 'Manzana means apple.' },
