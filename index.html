@@ -89,6 +89,7 @@ button{font-family:inherit; cursor:pointer; border:none; background:none; transi
   position:absolute; left:0; top:14px; width:40px; height:40px; border-radius:12px;
   display:grid; place-items:center; color:var(--text-muted);
 }
+.back-btn svg path{ stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
 .back-btn:hover{ background:var(--surface); color:var(--text); }
 .lang-title{ font-size:22px; font-weight:800; margin:0; line-height:1.25; padding:0 44px; }
 .lang-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; overflow-y:auto; flex:1; align-content:start; padding-bottom:8px; }
@@ -98,7 +99,7 @@ button{font-family:inherit; cursor:pointer; border:none; background:none; transi
   border-radius:16px; transition:transform 100ms ease, border-color var(--transition), background var(--transition);
 }
 .lang-card:not(:disabled):active{ transform:scale(0.96); }
-.lang-card:not(:disabled):hover{ border-color:var(--green); background:rgba(61,220,132,.08); }
+.lang-card:not(:disabled):hover{ border-color:var(--green); background:var(--surface); }
 .lang-card--disabled{ opacity:.55; cursor:not-allowed; }
 .lang-flag{ font-size:40px; line-height:1; }
 .lang-name{ font-size:15px; font-weight:800; color:var(--text); }
