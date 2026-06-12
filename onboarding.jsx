@@ -157,6 +157,26 @@
     );
   }
 
+  function LanguageSelectScreen({ onNext, onBack }) {
+    const { BackButton, LanguageCard } = window;
+
+    return (
+      <div className="screen language screen-fade">
+        <header className="lang-header">
+          <BackButton onClick={() => onBack('landing')} />
+          <h1 className="lang-title">What do you want to learn?</h1>
+        </header>
+        <div className="lang-grid">
+          {LANGUAGES.map((lang) => (
+            <LanguageCard
+              key={lang.id}
+              flag={lang.flag}
+              name={lang.name}
+              available={lang.available}
+              onSelect={() => onNext('quiz')}
+            />
+          ))}
+        </div>
   function SurveyStep({ title, sub, options, selected, onSelect, onContinue, cta }) {
     return (
       <div className="screen ob-step">
@@ -274,5 +294,9 @@
     );
   }
 
+  Object.assign(window, {
+    OnboardingLandingScreen: LandingScreen,
+    OnboardingLanguageSelectScreen: LanguageSelectScreen,
+  });
   Object.assign(window, { OnboardingFlow });
 })();
