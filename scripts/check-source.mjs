@@ -78,4 +78,36 @@ assert(sample.courseTitle.includes('Spanish'), 'personalizeHome must reflect sel
 assert(sample.tagline.toLowerCase().includes('travel'), 'personalizeHome must reflect reason');
 assert(sample.dailyGoal.includes('5'), 'personalizeHome must reflect daily goal');
 
+const acceptance = read('scripts/acceptance.mjs');
+assert(
+  !/^\s*pass\(\s*['"]16[^'"]*['"]\s*\)\s*;?\s*$/m.test(acceptance),
+  'acceptance.mjs must not contain an unconditional pass() for check 16',
+);
+assert(
+  acceptance.includes('assertCheck16SingleOnboardingPath'),
+  'acceptance.mjs must implement real check-16 onboarding-path assertions',
+);
+assert(
+  acceptance.includes('goal-row--sel'),
+  'acceptance.mjs must assert onboarding back-navigation preserves selections',
+);
+
+for (const legacy of [
+  "goTo('landing')",
+  "goTo('language')",
+  "appPhase === 'landing'",
+  "appPhase === 'language'",
+  "'landing' | 'language'",
+]) {
+  assert(!app.includes(legacy), `app.jsx must not reference legacy route: ${legacy}`);
+}
+
+assert(
+  !read('index.html').toLowerCase().includes('already have an account'),
+  'index.html must not expose fake account CTA copy',
+);
+
+const onboardingFlowExports = (onboarding.match(/function OnboardingFlow/g) || []).length;
+assert(onboardingFlowExports === 1, 'onboarding.jsx must define exactly one OnboardingFlow');
+
 console.log(`Validated ${lessons.length} lesson pack(s), profile spine, and core UI exports.`);
