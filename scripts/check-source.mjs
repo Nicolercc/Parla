@@ -92,6 +92,19 @@ assert(
   'acceptance.mjs must assert onboarding back-navigation preserves selections',
 );
 
+assert(
+  acceptance.includes('Your plan is ready'),
+  'acceptance.mjs must assert Plan Summary screen',
+);
+assert(
+  acceptance.includes('ob-pip-ack'),
+  'acceptance.mjs must assert Pip acknowledgement copy',
+);
+assert(
+  acceptance.includes('buildPlanSummary') || acceptance.includes('Travel-ready basics'),
+  'acceptance.mjs must assert Plan Summary content',
+);
+
 for (const legacy of [
   "goTo('landing')",
   "goTo('language')",
@@ -109,5 +122,24 @@ assert(
 
 const onboardingFlowExports = (onboarding.match(/function OnboardingFlow/g) || []).length;
 assert(onboardingFlowExports === 1, 'onboarding.jsx must define exactly one OnboardingFlow');
+
+assert(onboarding.includes('PlanSummaryStep'), 'onboarding.jsx must include Plan Summary step');
+assert(onboarding.includes('pipAcknowledgement'), 'onboarding.jsx must use Pip acknowledgement copy');
+assert(!onboarding.includes('PlanTray'), 'onboarding.jsx must not include visible Plan Tray');
+assert(!onboarding.includes('ob-plan-tray'), 'onboarding.jsx must not render plan tray UI');
+assert(!onboarding.includes('Pip says'), 'onboarding.jsx must not use third-person Pip copy');
+assert(!read('profile.js').includes('Pip says'), 'profile.js must not use third-person Pip copy');
+
+const summarySample = context.window.PARLA_META.buildPlanSummary({
+  selectedLanguage: 'es',
+  reason: 'travel',
+  level: 'new',
+  dailyGoal: 'casual',
+});
+const summaryLabels = summarySample.rows.map((row) => row.label).join(' ');
+assert(summaryLabels.includes('Spanish'), 'buildPlanSummary must include language');
+assert(summaryLabels.includes('Travel-ready basics'), 'buildPlanSummary must include reason');
+assert(summaryLabels.includes('Starting from scratch'), 'buildPlanSummary must include level');
+assert(summaryLabels.includes('5 min/day'), 'buildPlanSummary must include daily goal');
 
 console.log(`Validated ${lessons.length} lesson pack(s), profile spine, and core UI exports.`);

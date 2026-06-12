@@ -1,9 +1,19 @@
 (function () {
-  const { useState } = React;
+  const { useState, useMemo } = React;
   const Pip = window.Pip;
   const ActionButton = window.ActionButton;
   const BackButton = window.BackButton;
-  const { LANGUAGES, GOALS, SOURCES, REASONS, levelsFor } = window.PARLA_META;
+  const {
+    LANGUAGES,
+    GOALS,
+    SOURCES,
+    REASONS,
+    levelsFor,
+    buildPlanSummary,
+    pipAcknowledgement,
+  } = window.PARLA_META;
+
+  const TOTAL_STEPS = 7;
 
   function Flag({ id }) {
     const flags = {
@@ -80,6 +90,15 @@
     );
   }
 
+  function PipAck({ message }) {
+    if (!message) return null;
+    return (
+      <p className="ob-pip-ack" role="status">
+        {message}
+      </p>
+    );
+  }
+
   function WelcomeStep({ onContinue }) {
     return (
       <div className="screen screen--center ob-welcome">
@@ -95,12 +114,13 @@
     );
   }
 
-  function LanguageStep({ selected, onSelect, onContinue, onBack }) {
+  function LanguageStep({ selected, onSelect, onContinue, onBack, ack }) {
     return (
       <div className="screen ob-step">
         <ObNav showBack onBack={onBack} />
         <div className="ob-head">
           <h1 className="ob-title font-display">What do you want to learn?</h1>
+          <PipAck message={ack} />
         </div>
         <div className="ob-scroll">
           <div className="lang-grid">
@@ -130,13 +150,14 @@
     );
   }
 
-  function SurveyStep({ title, sub, options, selected, onSelect, onContinue, onBack, cta }) {
+  function SurveyStep({ title, sub, options, selected, onSelect, onContinue, onBack, cta, ack }) {
     return (
       <div className="screen ob-step">
         <ObNav showBack onBack={onBack} />
         <div className="ob-head">
           <h1 className="ob-title font-display">{title}</h1>
           {sub && <p className="ob-sub">{sub}</p>}
+          <PipAck message={ack} />
         </div>
         <div className="ob-scroll">
           <div className="goal-list">
@@ -163,13 +184,14 @@
     );
   }
 
-  function GoalStep({ selected, onSelect, onContinue, onBack }) {
+  function GoalStep({ selected, onSelect, onContinue, onBack, ack }) {
     return (
       <div className="screen ob-step">
         <ObNav showBack onBack={onBack} />
         <div className="ob-head">
           <h1 className="ob-title font-display">Pick a daily goal</h1>
-          <p className="ob-sub">Pip will remind you on your home path. You can change this later.</p>
+          <p className="ob-sub">I&rsquo;ll remind you on your home path. You can change this later.</p>
+          <PipAck message={ack} />
         </div>
         <div className="ob-scroll">
           <div className="goal-list">
@@ -189,7 +211,30 @@
           </div>
         </div>
         <div className="footer">
-          <ActionButton label="Start learning" onClick={onContinue} disabled={selected === null} variant="green" />
+          <ActionButton label="Continue" onClick={onContinue} disabled={selected === null} variant="green" />
+        </div>
+      </div>
+    );
+  }
+
+  function PlanSummaryStep({ summary, onContinue, onBack }) {
+    return (
+      <div className="screen screen--center ob-step ob-summary">
+        <ObNav showBack onBack={onBack} />
+        <div className="ob-summary-body">
+          <Pip mood="happy" size={140} />
+          <p className="ob-pip-bubble">I wrote it down. Let&rsquo;s start with one quick lesson.</p>
+          <h1 className="ob-title font-display">Your plan is ready</h1>
+          <ul className="plan-summary-list" aria-label="Your personalized plan">
+            {summary.rows.map((row) => (
+              <li key={row.key} className="plan-summary-row">
+                {row.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="footer">
+          <ActionButton label="Start my first lesson" onClick={onContinue} variant="green" />
         </div>
       </div>
     );
@@ -206,9 +251,29 @@
     const langName = language ? LANGUAGES.find((l) => l.id === language).name : '';
     const goBack = () => setStep((s) => Math.max(0, s - 1));
 
+    const summary = useMemo(() => buildPlanSummary({ language, reason, level, dailyGoal: goal }), [language, reason, level, goal]);
+
+    const stepAck = useMemo(() => {
+      if (step === 1 && language) {
+        return pipAcknowledgement('language', language, langName);
+      }
+      if (step === 3 && reason) {
+        return pipAcknowledgement('reason', reason, langName);
+      }
+      if (step === 4 && level) {
+        return pipAcknowledgement('level', level, langName);
+      }
+      if (step === 5 && goal) {
+        return pipAcknowledgement('dailyGoal', goal, langName);
+      }
+      return '';
+    }, [step, language, reason, level, goal, langName]);
+
+    const finish = () => onComplete({ language, source, reason, level, dailyGoal: goal });
+
     return (
       <div className="ob">
-        <StepDots step={step} total={6} />
+        <StepDots step={step} total={TOTAL_STEPS} />
         {step === 0 && <WelcomeStep onContinue={() => setStep(1)} />}
         {step === 1 && (
           <LanguageStep
@@ -216,6 +281,7 @@
             onSelect={setLanguage}
             onContinue={() => setStep(2)}
             onBack={goBack}
+            ack={stepAck}
           />
         )}
         {step === 2 && (
@@ -236,24 +302,34 @@
             onSelect={setReason}
             onContinue={() => setStep(4)}
             onBack={goBack}
+            ack={stepAck}
           />
         )}
         {step === 4 && (
           <SurveyStep
             title={'Where are you in your ' + langName + ' studies?'}
-            sub="We use this to personalize your home screen. Lesson 1 is the same starter path for now."
+            sub="I use this to personalize your home screen. Lesson 1 is the same starter path for now."
             options={levelsFor(langName)}
             selected={level}
             onSelect={setLevel}
             onContinue={() => setStep(5)}
             onBack={goBack}
+            ack={stepAck}
           />
         )}
         {step === 5 && (
           <GoalStep
             selected={goal}
             onSelect={setGoal}
-            onContinue={() => onComplete({ language, source, reason, level, dailyGoal: goal })}
+            onContinue={() => setStep(6)}
+            onBack={goBack}
+            ack={stepAck}
+          />
+        )}
+        {step === 6 && (
+          <PlanSummaryStep
+            summary={summary}
+            onContinue={finish}
             onBack={goBack}
           />
         )}

@@ -110,10 +110,16 @@ async function main() {
 
     await clickButton(page, 'Continue');
     await clickButton(page, 'Spanish');
+    const ackSpanish = await page.locator('.ob-pip-ack').textContent().catch(() => '');
+    if (/build your Spanish path/i.test(ackSpanish)) pass('3 Pip acknowledges Spanish', ackSpanish.trim());
+    else fail('3 Pip acknowledges Spanish', ackSpanish || 'no ack');
     await clickButton(page, 'Continue');
     await clickButton(page, 'Friends');
     await clickButton(page, 'Continue');
     await clickButton(page, 'travel');
+    const ackTravel = await page.locator('.ob-pip-ack').textContent().catch(() => '');
+    if (/practical for your trip/i.test(ackTravel)) pass('4 Pip acknowledges travel', ackTravel.trim());
+    else fail('4 Pip acknowledges travel', ackTravel || 'no ack');
     const travelSelected = await page.getByRole('button', { name: /Prepare for travel/i }).evaluate((el) => el.classList.contains('goal-row--sel'));
     if (travelSelected) pass('16b reason selection before back');
     else fail('16b reason selection before back', 'travel row not selected');
@@ -123,10 +129,46 @@ async function main() {
     if (travelStillSelected) pass('16a back navigation preserves reason choice');
     else fail('16a back navigation preserves reason choice', 'travel row lost selection after back');
     await clickButton(page, 'Continue');
+    const staleTravelAck = await page.locator('.ob-pip-ack').count();
+    if (staleTravelAck === 0) pass('4b level step hides travel ack until level selected');
+    else {
+      const staleText = await page.locator('.ob-pip-ack').textContent();
+      if (!/trip/i.test(staleText || '')) pass('4b level step hides travel ack until level selected');
+      else fail('4b level step hides travel ack until level selected', staleText);
+    }
     await clickButton(page, 'new to Spanish');
+    const ackLevel = await page.locator('.ob-pip-ack').textContent().catch(() => '');
+    if (/ground up/i.test(ackLevel)) pass('7 Pip acknowledges beginner level', ackLevel.trim());
+    else fail('7 Pip acknowledges beginner level', ackLevel || 'no ack');
     await clickButton(page, 'Continue');
     await clickButton(page, 'Casual');
-    await clickButton(page, 'Start learning');
+    const ackGoal = await page.locator('.ob-pip-ack').textContent().catch(() => '');
+    if (/Five focused minutes/i.test(ackGoal)) pass('9 Pip acknowledges casual goal', ackGoal.trim());
+    else fail('9 Pip acknowledges casual goal', ackGoal || 'no ack');
+    await clickButton(page, 'Continue');
+
+    await page.waitForSelector('text=Your plan is ready');
+    pass('10 Plan Summary screen appears');
+
+    const summaryText = await page.locator('.ob-summary').innerText();
+    const summaryChecks = [
+      ['Spanish', /Spanish/i.test(summaryText)],
+      ['travel', /Travel-ready basics/i.test(summaryText)],
+      ['beginner', /Starting from scratch/i.test(summaryText)],
+      ['5 min/day', /5 min\/day/i.test(summaryText)],
+    ];
+    for (const [label, ok] of summaryChecks) {
+      if (ok) pass(`11 Summary shows ${label}`);
+      else fail(`11 Summary shows ${label}`, summaryText.slice(0, 120));
+    }
+
+    await page.getByRole('button', { name: 'Back' }).first().click();
+    const casualStillSelected = await page.getByRole('button', { name: /Casual/i }).evaluate((el) => el.classList.contains('goal-row--sel'));
+    if (casualStillSelected) pass('12 Back from summary preserves daily goal');
+    else fail('12 Back from summary preserves daily goal');
+    await clickButton(page, 'Continue');
+    await page.waitForSelector('text=Your plan is ready');
+    await clickButton(page, 'Start my first lesson');
 
     const stored = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), STORE_KEY);
     for (const [field, val] of Object.entries({

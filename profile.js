@@ -44,6 +44,20 @@
 
   const GOAL_MINUTES = { casual: 5, regular: 10, serious: 15, intense: 20 };
 
+  const REASON_SUMMARY_LABELS = {
+    people: 'Connect with people',
+    career: 'Career-focused learning',
+    school: 'School support',
+    travel: 'Travel-ready basics',
+    fun: 'Learning for fun',
+    brain: 'Daily brain training',
+  };
+
+  const LEVEL_SUMMARY_LABELS = {
+    new: 'Starting from scratch',
+    some: 'Warming up what you know',
+  };
+
   function languageById(id) {
     return LANGUAGES.find((l) => l.id === id) || LANGUAGES[0];
   }
@@ -63,6 +77,52 @@
         detail: 'Lesson 1 reviews basics — placement tests come later.',
       },
     ];
+  }
+
+  function buildPlanSummary(profile) {
+    const langId = profile.language || profile.selectedLanguage;
+    const lang = languageById(langId).name;
+    const goal = GOALS.find((g) => g.id === profile.dailyGoal);
+    return {
+      rows: [
+        { key: 'language', label: lang },
+        { key: 'reason', label: REASON_SUMMARY_LABELS[profile.reason] || '' },
+        { key: 'level', label: LEVEL_SUMMARY_LABELS[profile.level] || '' },
+        { key: 'dailyGoal', label: goal ? goal.minutes + ' min/day' : '' },
+      ].filter((row) => row.label),
+    };
+  }
+
+  function pipAcknowledgement(field, value, langName) {
+    if (field === 'language') {
+      return 'Great — I\u2019ll build your ' + langName + ' path.';
+    }
+    if (field === 'reason') {
+      const copy = {
+        travel: 'Got it. I\u2019ll keep this practical for your trip.',
+        people: 'Love that. We\u2019ll focus on words you can actually use with people.',
+        school: 'Got it. I\u2019ll help you build a steady foundation.',
+        career: 'Nice — we\u2019ll keep it useful and clear.',
+        fun: 'Fun choice. I\u2019ll keep things light and rewarding.',
+        brain: 'Smart. We\u2019ll train your brain a little each day.',
+      };
+      return copy[value] || 'Got it. I\u2019ll shape your path around that.';
+    }
+    if (field === 'level') {
+      if (value === 'new') return 'Perfect. We\u2019ll start from the ground up.';
+      if (value === 'some') return 'Great. I\u2019ll still keep the first lesson light so we can warm up.';
+      return 'Got it. I\u2019ll meet you where you are.';
+    }
+    if (field === 'dailyGoal') {
+      const copy = {
+        casual: 'Nice. Five focused minutes is a real start.',
+        regular: 'Solid. Ten minutes gives us room to build momentum.',
+        serious: 'Love the energy. I\u2019ll help you stay consistent.',
+        intense: 'Love the energy. I\u2019ll help you stay consistent.',
+      };
+      return copy[value] || 'Great — we\u2019ll build from here.';
+    }
+    return '';
   }
 
   function isProfileComplete(account) {
@@ -102,16 +162,16 @@
    * Mascot (green blob) is Pip's in-lesson animated form — same character, lesson context.
    */
   function quizBubble({ isChecked, isCorrect, hearts }) {
-    if (!isChecked && hearts <= 1) return 'Last heart — Pip says focus up.';
-    if (!isChecked) return 'Pip says you got this.';
-    return isCorrect ? 'Nice work — Pip agrees!' : 'Not quite — Pip saved the hint below.';
+    if (!isChecked && hearts <= 1) return 'Last heart — stay focused.';
+    if (!isChecked) return 'You got this.';
+    return isCorrect ? 'Nice work!' : 'Not quite — check the hint below.';
   }
 
   function resultCopy(passed) {
     if (passed) {
       return {
         title: 'Lesson complete!',
-        sub: 'Pip marked progress on your path.',
+        sub: 'I marked progress on your path.',
       };
     }
     return {
@@ -130,6 +190,8 @@
       levelsFor,
       personalizeHome,
       isProfileComplete,
+      buildPlanSummary,
+      pipAcknowledgement,
       GOAL_MINUTES,
     },
     PARLA_COPY: {
