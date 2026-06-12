@@ -16,10 +16,10 @@
   } = window;
 
   const CONFIG = {
-    maxHearts: 3,
+    maxHearts: 5,
     showMascot: true,
     optionColumns: 2,
-    accent: { c: '#3DDC84', d: '#22B567' },
+    accent: { c: '#58CC02', d: '#46A302' },
   };
 
   function useQuizState(maxHearts) {
