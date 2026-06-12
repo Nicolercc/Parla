@@ -39,6 +39,14 @@ for (const lesson of lessons) {
 const app = read('app.jsx');
 const screens = read('screens.jsx');
 const ui = read('ui.jsx');
+const onboarding = read('onboarding.jsx');
+
+for (const file of ['app.jsx', 'screens.jsx', 'ui.jsx', 'onboarding.jsx']) {
+  assert(!read(file).includes('<<<<<<<'), `${file} must not contain merge conflict markers`);
+}
+
+assert(onboarding.includes('function OnboardingFlow'), 'onboarding.jsx must define OnboardingFlow');
+assert(app.includes('OnboardingFlow'), 'app.jsx must wire OnboardingFlow');
 
 for (const required of ['LessonMapScreen', 'LockedScreen', 'ResultScreen']) {
   assert(app.includes(required), `app.jsx must wire ${required}`);
