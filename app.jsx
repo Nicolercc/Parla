@@ -44,12 +44,10 @@
         setScore((s) => s + 1);
         return;
       }
-      setHearts((h) => {
-        const next = h - 1;
-        if (next <= 0) setPhase('locked');
-        return next;
-      });
-    }, [isChecked, selectedOption, currentQuestion]);
+      const nextHearts = hearts - 1;
+      setHearts(nextHearts);
+      if (nextHearts <= 0) setPhase('locked');
+    }, [hearts, isChecked, selectedOption, currentQuestion]);
 
     const advance = useCallback(() => {
       if (phase === 'locked') return;
