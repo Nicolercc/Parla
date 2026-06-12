@@ -15,6 +15,69 @@ async function clickButton(page, name) {
   await page.getByRole('button', { name, exact: false }).first().click();
 }
 
+async function assertCheck16SingleOnboardingPath(page) {
+  const legacyAccount = await page.getByRole('button', { name: /already have an account/i }).count();
+  if (legacyAccount === 0) pass('16c no fake account CTA');
+  else fail('16c no fake account CTA', 'legacy CTA still in DOM');
+
+  const legacyLanding = await page.locator('.landing-headline, .landing-actions').count();
+  if (legacyLanding === 0) pass('16d no legacy landing screen DOM');
+  else fail('16d no legacy landing screen DOM', String(legacyLanding));
+
+  const legacyLangScreen = await page.locator('.language.screen, .lang-header .lang-title').count();
+  if (legacyLangScreen === 0) pass('16e no legacy language-select screen DOM');
+  else fail('16e no legacy language-select screen DOM', String(legacyLangScreen));
+
+  await page.evaluate((k) => {
+    const acc = JSON.parse(localStorage.getItem(k) || '{}');
+    acc.hasStarted = true;
+    acc.selectedLanguage = 'es';
+    acc.source = 'friends';
+    acc.level = 'new';
+    acc.dailyGoal = 'casual';
+    acc.reason = null;
+    localStorage.setItem(k, JSON.stringify(acc));
+  }, STORE_KEY);
+  await page.reload({ waitUntil: 'networkidle' });
+
+  const onIncompleteOb = await page.locator('.ob').isVisible().catch(() => false);
+  const onIncompleteHome = await page.locator('.home').isVisible().catch(() => false);
+  if (onIncompleteOb && !onIncompleteHome) pass('16f incomplete profile → onboarding (not home)');
+  else fail('16f incomplete profile → onboarding', `ob=${onIncompleteOb} home=${onIncompleteHome}`);
+
+  await page.evaluate((k) => {
+    localStorage.setItem(k, JSON.stringify({
+      hasStarted: true,
+      selectedLanguage: 'es',
+      source: 'friends',
+      reason: 'travel',
+      level: 'new',
+      dailyGoal: 'casual',
+      hearts: 3,
+      gems: 120,
+      xp: 0,
+      streak: 0,
+      completedLessons: 0,
+      isPlus: false,
+      lastHeartAt: null,
+      lastPlayedDate: null,
+    }));
+  }, STORE_KEY);
+  await page.reload({ waitUntil: 'networkidle' });
+
+  const onCompleteHome = await page.locator('.home').isVisible().catch(() => false);
+  const onCompleteOb = await page.locator('.ob').isVisible().catch(() => false);
+  if (onCompleteHome && !onCompleteOb) pass('16g complete profile → home (skips onboarding)');
+  else fail('16g complete profile → home', `home=${onCompleteHome} ob=${onCompleteOb}`);
+
+  await page.evaluate((k) => localStorage.removeItem(k), STORE_KEY);
+  await page.reload({ waitUntil: 'networkidle' });
+  const freshOb = await page.locator('.ob').isVisible().catch(() => false);
+  const freshHome = await page.locator('.home').isVisible().catch(() => false);
+  if (freshOb && !freshHome) pass('16h fresh localStorage → onboarding only');
+  else fail('16h fresh localStorage → onboarding only', `ob=${freshOb} home=${freshHome}`);
+}
+
 async function answerWrong(page) {
   const n = await page.locator('.opt').count();
   for (let i = 0; i < n; i++) {
@@ -51,6 +114,14 @@ async function main() {
     await clickButton(page, 'Friends');
     await clickButton(page, 'Continue');
     await clickButton(page, 'travel');
+    const travelSelected = await page.getByRole('button', { name: /Prepare for travel/i }).evaluate((el) => el.classList.contains('goal-row--sel'));
+    if (travelSelected) pass('16b reason selection before back');
+    else fail('16b reason selection before back', 'travel row not selected');
+    await page.getByRole('button', { name: 'Back' }).first().click();
+    await clickButton(page, 'Continue');
+    const travelStillSelected = await page.getByRole('button', { name: /Prepare for travel/i }).evaluate((el) => el.classList.contains('goal-row--sel'));
+    if (travelStillSelected) pass('16a back navigation preserves reason choice');
+    else fail('16a back navigation preserves reason choice', 'travel row lost selection after back');
     await clickButton(page, 'Continue');
     await clickButton(page, 'new to Spanish');
     await clickButton(page, 'Continue');
@@ -113,7 +184,7 @@ async function main() {
     if (!pageErrors.length) pass('14–15 No page errors');
     else fail('14–15 Page errors', pageErrors.join('; '));
 
-    pass('16 Single onboarding path');
+    await assertCheck16SingleOnboardingPath(page);
   } catch (e) {
     fail('Acceptance run', e.message);
   } finally {
