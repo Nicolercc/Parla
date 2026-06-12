@@ -5,6 +5,7 @@
   "main": "questions.js",
   "scripts": {
     "dev": "npx serve .",
+    "test": "node scripts/check-source.mjs",
     "deploy": "vercel --prod",
     "deploy:preview": "vercel"
   },

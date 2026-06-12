@@ -1,8 +1,8 @@
 # Parla
 
-**Learn Spanish through bite-sized, game-like practice — no install, no build step.**
+**Learn Spanish through a Duolingo-style unit path, quiz loop, hearts economy, and premium recovery model.**
 
-Parla is a mobile-first language quiz inspired by the best patterns in modern learning apps: hearts, streaks, instant feedback, and a mascot that reacts to every answer. It runs entirely in the browser with React 18 and zero bundler configuration.
+Parla is a mobile-first language learning prototype inspired by the strongest product patterns in modern learning apps: a unit map, persistent hearts, streaks, gems, XP, instant feedback, premium upsells, and a mascot that reacts to learner state. It still runs entirely in the browser with React 18 and zero bundler configuration, but this branch now models the freemium economy instead of treating hearts as throwaway quiz state.
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)](https://react.dev/)
 [![License](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
@@ -29,9 +29,11 @@ Parla is a mobile-first language quiz inspired by the best patterns in modern le
 
 ## Overview
 
-Parla turns vocabulary and translation drills into a short, focused lesson. Each session walks the learner through 10 multiple-choice questions while tracking progress, lives, and XP. Wrong answers cost a heart; run out and the lesson locks until hearts refill — or the learner starts fresh.
+Parla turns vocabulary and translation drills into a short, focused lesson. The learner starts from a unit path, spends hearts on mistakes, earns XP/gems/streak progress on completion, and hits a recovery decision when hearts run out: wait, practice, spend gems, or try Parla+.
 
 The app is deliberately simple to run and extend: open a file, edit questions in plain JavaScript, refresh. No Webpack, no Vite, no transpile pipeline. JSX is compiled in the browser via Babel Standalone, and React loads from a CDN.
+
+For the ruthless product and engineering teardown, see [`DUOLINGO_CLONE_AUDIT.md`](DUOLINGO_CLONE_AUDIT.md).
 
 **Who it's for**
 
@@ -47,22 +49,25 @@ The app is deliberately simple to run and extend: open a file, edit questions in
 
 ### Core loop
 
-- **10-question lessons** — vocabulary (`How do you say…`) and translation (`Translate`) prompts
-- **Hearts system** — 3 lives per round; incorrect answers deduct one heart
+- **Unit path** — a home map with lesson nodes, locked future content, and account stats
+- **10-question lessons** — vocabulary and translation prompts with answer explanations
+- **Persistent hearts system** — 5 account hearts; incorrect answers deduct one heart
 - **Instant feedback** — slide-up bar with correct answer reveal on mistakes
-- **Progress tracking** — animated progress bar and per-question transitions
+- **Progress tracking** — animated progress bar, XP, gems, streak, and completed lessons
 
 ### Delight & retention
 
 - **Pip, the mascot** — SVG character with mood states: idle, thinking, happy, sad
-- **Speech bubble** — contextual Spanish encouragement (`¿Cómo se dice…?`, `¡Sí! Perfecto.`)
-- **Results screen** — star rating (1–3), XP earned, confetti on completion
-- **Locked screen** — heart refill countdown, Parla+ upsell card, restart option
+- **Speech bubble** — contextual encouragement for normal, low-heart, correct, and wrong states
+- **Results screen** — star rating (1–3), XP, gems, confetti, and path continuation
+- **Locked screen** — heart refill countdown, practice recovery, gem refill, and Parla+ upsell
 
 ### Engineering quality
 
 - **Modular IIFE modules** — each file attaches to `window`; no import graph to configure
-- **Custom hook** — `useQuizState` centralizes quiz logic (selection, scoring, phase transitions)
+- **Account economy hook** — `useAccount` centralizes hearts, gems, XP, streaks, Plus, and refill timing
+- **Quiz state hook** — `useQuizState` centralizes selection, scoring, feedback, lock, and completion phases
+- **Smoke test** — `npm run test` validates the lesson schema and required component exports
 - **Accessibility** — ARIA on progress bar, reduced-motion media query, semantic buttons
 - **Mobile-first** — phone-frame layout, safe-area insets, `100dvh` viewport handling
 
@@ -86,13 +91,19 @@ cd Parla
 python3 -m http.server 8080
 
 # Option B — Node (npx, no install)
-npx serve .
+npm run dev
 
 # Option C — open directly (works; a server is nicer for dev)
 open index.html
 ```
 
-Then visit **http://localhost:8080** (or the port your server prints).
+Then visit **http://localhost:3000** for `npm run dev`, or **http://localhost:8080** for the Python server.
+
+Run the smoke test with:
+
+```bash
+npm run test
+```
 
 No `npm install` required. The app loads React, ReactDOM, and Babel from CDN.
 
