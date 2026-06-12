@@ -29,6 +29,7 @@
     const [selectedOption, setSelectedOption] = useState(null);
     const [isChecked, setIsChecked] = useState(false);
     const [phase, setPhase] = useState('quiz');
+    const [pendingLock, setPendingLock] = useState(false);
 
     const currentQuestion = Q[currentIndex];
     const isCorrect = selectedOption === currentQuestion.correctIndex;
@@ -44,12 +45,17 @@
         setScore((s) => s + 1);
         return;
       }
-      const nextHearts = hearts - 1;
-      setHearts(nextHearts);
-      if (nextHearts <= 0) setPhase('locked');
+      const shouldLock = hearts <= 1;
+      setHearts((h) => Math.max(0, h - 1));
+      setPendingLock(shouldLock);
     }, [hearts, isChecked, selectedOption, currentQuestion]);
 
     const advance = useCallback(() => {
+      if (pendingLock) {
+        setPendingLock(false);
+        setPhase('locked');
+        return;
+      }
       if (phase === 'locked') return;
       if (currentIndex + 1 >= Q.length) {
         setPhase('complete');
@@ -58,7 +64,7 @@
       setCurrentIndex((i) => i + 1);
       setSelectedOption(null);
       setIsChecked(false);
-    }, [currentIndex, phase]);
+    }, [currentIndex, pendingLock, phase]);
 
     const resetQuiz = useCallback(() => {
       setCurrentIndex(0);
@@ -66,6 +72,7 @@
       setHearts(maxHearts);
       setSelectedOption(null);
       setIsChecked(false);
+      setPendingLock(false);
       setPhase('quiz');
     }, [maxHearts]);
 
