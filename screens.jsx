@@ -1,6 +1,13 @@
 (function () {
   const { useEffect, useMemo, useState, useRef } = React;
   const Pip = window.Pip;
+  const Mascot = window.Mascot;
+
+  function QuizMascot({ isChecked, isCorrect, selectedOption, size = 104 }) {
+    if (isChecked) return <Mascot state={isCorrect ? 'correct' : 'wrong'} size={size} />;
+    if (selectedOption !== null) return <Mascot state="idle" size={size} />;
+    return <Mascot state="idle" size={size} />;
+  }
 
   const CONFETTI_COLORS = ['var(--green)', 'var(--blue)', 'var(--purple)', 'var(--yellow)', 'var(--coral)'];
   const REFILL_SECONDS = 4 * 60 * 60;
@@ -85,7 +92,7 @@
           ))}
         </div>
         <div className="result-mascot">
-          <Pip mood={survived ? 'happy' : 'idle'} size={150} />
+          <Mascot state={survived ? 'complete' : 'wrong'} size={150} />
         </div>
         <h1 className="result-title font-display">{survived ? 'Lesson complete!' : 'You made it!'}</h1>
         <p className="result-sub">
@@ -186,7 +193,7 @@
         <div className="landing-glow" aria-hidden="true" />
         <div className="landing-body">
           <div className="landing-mascot landing-enter-mascot">
-            <Pip mood="idle" size={148} />
+            <Mascot state="idle" size={148} />
           </div>
           <h1 className="landing-headline landing-enter-headline">
             Learn a language in minutes a day.
@@ -232,5 +239,6 @@
     Star,
     LandingScreen,
     LanguageSelectScreen,
+    QuizMascot,
   });
 })();
