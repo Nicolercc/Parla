@@ -5,7 +5,7 @@
 
   function QuizMascot({ isChecked, isCorrect, selectedOption, size = 104 }) {
     if (isChecked) return <Mascot state={isCorrect ? 'correct' : 'wrong'} size={size} />;
-    if (selectedOption !== null) return <Mascot state="idle" size={size} />;
+    if (selectedOption !== null) return <Pip mood="listening" size={size} />;
     return <Mascot state="idle" size={size} />;
   }
 

@@ -358,7 +358,11 @@
             selectedOption={q.selectedOption}
             size={104}
           />
-          <div className={'bubble ' + (q.isChecked ? (q.isCorrect ? 'bubble--ok' : 'bubble--no') : '')}>
+          <div
+            className={'bubble ' + (q.isChecked ? (q.isCorrect ? 'bubble--ok' : 'bubble--no') : '')}
+            role="status"
+            aria-live="polite"
+          >
             {quizBubble({ isChecked: q.isChecked, isCorrect: q.isCorrect, hearts: account.hearts })}
           </div>
         </div>
