@@ -205,11 +205,12 @@ async function main() {
       const fb = await answerWrong(page);
       if (/Good try/i.test(fb)) sawGoodTry = true;
       await page.getByRole('button', { name: 'Continue' }).click().catch(() => {});
-      if (await page.getByText(/Pip will wait/i).isVisible().catch(() => false)) break;
+      if (await page.locator('.locked-title').isVisible().catch(() => false)) break;
     }
 
-    if (await page.getByText(/Pip will wait/i).isVisible()) pass('10–11 Out-of-hearts locked screen');
-    else fail('10–11 Out-of-hearts locked screen');
+    const lockedTitle = await page.locator('.locked-title').textContent().catch(() => '');
+    if (/out of hearts/i.test(lockedTitle || '')) pass('10–11 Out-of-hearts locked screen');
+    else fail('10–11 Out-of-hearts locked screen', lockedTitle || 'title not found');
 
     if (sawGoodTry) pass('10 Feedback before lock');
     else fail('10 Feedback before lock');

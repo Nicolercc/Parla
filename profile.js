@@ -144,7 +144,7 @@
     const minutes = account.dailyGoal && GOAL_MINUTES[account.dailyGoal];
     const dailyGoal = minutes ? "Today's goal: " + minutes + ' min' : null;
     const levelNote = account.level === 'some'
-      ? 'You told Pip you know some ' + lang + ' — lesson 1 still reviews core words.'
+      ? 'You said you know some ' + lang + ' — lesson 1 still reviews core words.'
       : account.level === 'new'
         ? 'Starting from scratch — lesson 1 builds your foundation.'
         : null;
