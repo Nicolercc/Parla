@@ -49,7 +49,7 @@
     );
   }
 
-  function HeartsDisplay({ hearts, maxHearts = 5 }) {
+  function HeartsDisplay({ hearts, maxHearts = 5, isPlus = false }) {
     const prev = useRef(hearts);
     const [pulse, setPulse] = useState(false);
 
@@ -64,10 +64,14 @@
     }, [hearts]);
 
     return (
-      <div className={'hearts ' + (pulse ? 'hearts--lost' : '')}>
-        {          Array.from({ length: maxHearts }).map((_, i) => (
+      <div className={'hearts ' + (pulse ? 'hearts--lost' : '') + (isPlus ? ' hearts--plus' : '')}>
+        {isPlus ? (
+          <span className="plus-heart">∞</span>
+        ) : (
+          Array.from({ length: maxHearts }).map((_, i) => (
             <Heart key={i} gradientId={'hg-' + i} filled={i < hearts} broken={i === hearts && pulse} />
-          ))}
+          ))
+        )}
       </div>
     );
   }
@@ -92,10 +96,10 @@
     );
   }
 
-  function QuestionCard({ hint, prompt, children }) {
+  function QuestionCard({ hint, instruction, prompt, children }) {
     return (
       <div className="qcard">
-        <div className="qcard-label">{hint}</div>
+        <div className="qcard-label">{instruction || hint}</div>
         <h1 className="qcard-prompt font-display">
           <span className="qcard-quote">“</span>
           {prompt}
@@ -106,7 +110,7 @@
     );
   }
 
-  function FeedbackBar({ isVisible, isCorrect, correctAnswer, onContinue }) {
+  function FeedbackBar({ isVisible, isCorrect, correctAnswer, explanation, onContinue }) {
     return (
       <div className={'feedback ' + (isVisible ? 'feedback--in ' : '') + (isCorrect ? 'feedback--ok' : 'feedback--no')}>
         <div className="feedback-inner">
@@ -115,7 +119,7 @@
             <div className="feedback-text">
               <div className="feedback-title font-display">{isCorrect ? '¡Excelente!' : 'Not quite'}</div>
               <div className="feedback-sub">
-                {isCorrect ? 'Nice — you nailed it.' : <span>Answer: <b>{correctAnswer}</b></span>}
+                {isCorrect ? (explanation || 'Nice work.') : <span>Answer: <b>{correctAnswer}</b>. {explanation}</span>}
               </div>
             </div>
           </div>
