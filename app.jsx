@@ -1,6 +1,6 @@
 (function () {
-  const { useEffect, useMemo, useState, useCallback } = React;
-  const LESSONS = window.PARLA_LESSONS || [{ id: 'legacy', title: 'Basics', xp: 15, questions: window.PARLA_QUESTIONS }];
+  const { useState, useCallback } = React;
+  const Q = window.PARLA_QUESTIONS;
   const {
     ProgressBar,
     HeartsDisplay,
@@ -15,6 +15,7 @@
     LessonMapScreen,
     QuizMascot,
   } = window;
+
 
   const CONFIG = {
     maxHearts: 5,
@@ -280,6 +281,15 @@
     const recoverToPath = (action) => {
       action();
       onExit();
+  function QuizScreen({ q, rootStyle }) {
+    const mood = mascotMood(q);
+
+    // Onboarding runs once per session, before the quiz (PRD section 11).
+    const [profile, setProfile] = useState(null);
+
+    const onAction = () => {
+      if (q.isChecked) q.advance();
+      else q.checkAnswer();
     };
 
     if (q.phase === 'locked') {
@@ -312,6 +322,23 @@
     }
 
     return (
+      <div className="app" style={rootStyle}>
+        <div className="phone">
+          {profile === null ? (
+            <OnboardingFlow onComplete={setProfile} />
+          ) : q.phase === 'locked' ? (
+            <LockedScreen onReset={q.resetQuiz} />
+          ) : q.phase === 'complete' ? (
+            <ResultScreen score={q.score} total={q.total} hearts={q.hearts} onReset={q.resetQuiz} />
+          ) : (
+            <div className="screen quiz">
+              <div className="topbar">
+                <button type="button" className="close-btn" onClick={q.resetQuiz} aria-label="Restart">
+                  ✕
+                </button>
+                <ProgressBar current={q.currentIndex} total={q.total} />
+                <HeartsDisplay hearts={q.hearts} maxHearts={CONFIG.maxHearts} />
+              </div>
       <div className="screen quiz screen-fade" style={rootStyle}>
         <div className="topbar">
           <button type="button" className="close-btn" onClick={onExit} aria-label="Exit lesson">
