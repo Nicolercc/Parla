@@ -1,5 +1,5 @@
 (function () {
-  const { useEffect, useMemo, useState, useRef } = React;
+  const { useEffect, useMemo, useState } = React;
   const Pip = window.Pip;
   const Mascot = window.Mascot;
 
@@ -10,7 +10,6 @@
   }
 
   const CONFETTI_COLORS = ['var(--green)', 'var(--blue)', 'var(--purple)', 'var(--yellow)', 'var(--coral)'];
-  const REFILL_SECONDS = 4 * 60 * 60;
 
   function Confetti({ run }) {
     const bits = useMemo(() => Array.from({ length: 34 }).map((_, i) => ({
@@ -46,13 +45,98 @@
     );
   }
 
+  function StatPill({ icon, value, label, tone = '' }) {
+    return (
+      <div className={'stat-pill ' + tone}>
+        <span className="stat-icon">{icon}</span>
+        <span className="stat-value">{value}</span>
+        <span className="stat-label">{label}</span>
+      </div>
+    );
+  }
+
+  function MiniOffer({ account, maxHearts, refillCost, refillLabel, onTryPlus, onBuyRefill, onPractice }) {
+    const canBuy = account.gems >= refillCost;
+    const needsHearts = !account.isPlus && account.hearts <= 0;
+
+    return (
+      <div className={'mini-offer ' + (needsHearts ? 'mini-offer--urgent' : '')}>
+        <div>
+          <div className="mini-title">{account.isPlus ? 'Parla+ active' : needsHearts ? 'No hearts left' : 'Keep your run alive'}</div>
+          <div className="mini-copy">
+            {account.isPlus ? 'Unlimited hearts are on.' : needsHearts ? 'Wait, practice, spend gems, or start Parla+.' : 'Mistakes cost hearts. Premium removes the limit.'}
+          </div>
+        </div>
+        {!account.isPlus && (
+          <div className="mini-actions">
+            <button type="button" className="mini-link" onClick={onPractice}>Practice +1</button>
+            <button type="button" className="mini-link" disabled={!canBuy} onClick={onBuyRefill}>Refill {refillCost}</button>
+            <button type="button" className="mini-plus" onClick={onTryPlus}>Try Plus</button>
+          </div>
+        )}
+        {!account.isPlus && account.hearts < maxHearts && <div className="mini-timer">Next free heart {refillLabel}</div>}
+      </div>
+    );
+  }
+
+  function LessonMapScreen({ account, lesson, maxHearts, refillCost, refillLabel, onStartLesson, onTryPlus, onBuyRefill, onPractice }) {
+    const locked = !account.isPlus && account.hearts <= 0;
+
+    return (
+      <div className="screen home screen-fade">
+        <header className="home-top">
+          <div>
+            <div className="unit-kicker">{lesson.unit}</div>
+            <h1 className="home-title">Spanish Foundations</h1>
+          </div>
+          <Pip mood={locked ? 'sad' : 'idle'} size={68} />
+        </header>
+
+        <div className="stats-row">
+          <StatPill icon="🔥" value={account.streak} label="streak" tone="tone-fire" />
+          <StatPill icon="💎" value={account.gems} label="gems" tone="tone-gem" />
+          <StatPill icon={account.isPlus ? '∞' : '♥'} value={account.isPlus ? 'Plus' : account.hearts + '/' + maxHearts} label="hearts" tone="tone-heart" />
+        </div>
+
+        <MiniOffer
+          account={account}
+          maxHearts={maxHearts}
+          refillCost={refillCost}
+          refillLabel={refillLabel}
+          onTryPlus={onTryPlus}
+          onBuyRefill={onBuyRefill}
+          onPractice={onPractice}
+        />
+
+        <main className="path">
+          <div className="path-line" />
+          <button type="button" className="lesson-node lesson-node--active" onClick={onStartLesson}>
+            <span className="node-crown">★</span>
+            <span className="node-title">{lesson.title}</span>
+            <span className="node-sub">{locked ? 'Unlock hearts to continue' : lesson.xp + ' XP lesson'}</span>
+          </button>
+          <button type="button" className="lesson-node lesson-node--locked" disabled>
+            <span className="node-crown">🔒</span>
+            <span className="node-title">Talk to staff</span>
+            <span className="node-sub">Complete the first lesson</span>
+          </button>
+          <button type="button" className="lesson-node lesson-node--locked" disabled>
+            <span className="node-crown">🔒</span>
+            <span className="node-title">Daily review</span>
+            <span className="node-sub">Personalized practice</span>
+          </button>
+        </main>
+      </div>
+    );
+  }
+
   function Star({ on }) {
     return (
       <svg className={'rstar ' + (on ? 'rstar--on' : 'rstar--off')} viewBox="0 0 52 52" width="56" height="56">
         <path
           d="M26 3l6.9 14 15.4 2.2-11.1 10.9 2.6 15.3L26 38.1 12.2 45.4l2.6-15.3L3.7 19.2 19.1 17 26 3z"
-          fill={on ? 'var(--yellow)' : '#E9E6F2'}
-          stroke={on ? '#E9A800' : '#DAD6E6'}
+          fill={on ? 'var(--yellow)' : '#E5E5E5'}
+          stroke={on ? '#E9A800' : '#D7D7D7'}
           strokeWidth="2"
           strokeLinejoin="round"
         />
@@ -66,24 +150,22 @@
     return 1;
   }
 
-  function ResultScreen({ score, total, hearts, onReset }) {
+  function ResultScreen({ score, total, hearts, xpEarned, gemsEarned, onContinue, onPractice }) {
     const stars = starCount(score, total);
     const [shown, setShown] = useState(0);
 
     useEffect(() => {
       setShown(0);
       const timers = [];
-      for (let i = 1; i <= stars; i++) {
-        timers.push(setTimeout(() => setShown(i), 450 + i * 350));
-      }
+      for (let i = 1; i <= stars; i++) timers.push(setTimeout(() => setShown(i), 350 + i * 320));
       return () => timers.forEach(clearTimeout);
     }, [stars]);
 
-    const survived = hearts > 0;
+    const passed = score >= Math.ceil(total * 0.6);
 
     return (
       <div className="screen screen--center result">
-        <Confetti run={survived} />
+        <Confetti run={passed} />
         <div className="result-stars">
           {[0, 1, 2].map((i) => (
             <span key={i} className={'star-slot ' + (shown > i ? 'pop' : '')}>
@@ -92,86 +174,77 @@
           ))}
         </div>
         <div className="result-mascot">
-          <Mascot state={survived ? 'complete' : 'wrong'} size={150} />
+          <Mascot state={passed ? 'complete' : 'wrong'} size={150} />
         </div>
-        <h1 className="result-title font-display">{survived ? 'Lesson complete!' : 'You made it!'}</h1>
-        <p className="result-sub">
-          {survived ? 'You kept your streak alive.' : 'A little bruised, but you finished. ¡Bravo!'}
-        </p>
+        <h1 className="result-title font-display">{passed ? 'Lesson complete!' : 'Practice unlocked'}</h1>
+        <p className="result-sub">{passed ? 'You earned progress on the path.' : 'Review earns hearts without spending hearts.'}</p>
         <div className="result-scorecard">
           <div className="score-pill">
-            <span className="score-num font-display">
-              {score}
-              <span className="score-den">/{total}</span>
-            </span>
+            <span className="score-num font-display">{score}<span className="score-den">/{total}</span></span>
             <span className="score-cap">Correct</span>
           </div>
           <div className="score-pill">
-            <span className="score-num font-display" style={{ color: 'var(--yellow-d)' }}>
-              +{score * 10}
-            </span>
-            <span className="score-cap">XP earned</span>
+            <span className="score-num font-display" style={{ color: 'var(--yellow-d)' }}>+{xpEarned}</span>
+            <span className="score-cap">XP</span>
+          </div>
+          <div className="score-pill">
+            <span className="score-num font-display" style={{ color: 'var(--blue-d)' }}>+{gemsEarned}</span>
+            <span className="score-cap">Gems</span>
           </div>
         </div>
-        <button type="button" className="btn btn--block btn--lg btn--green" onClick={onReset}>
-          Practice again
-        </button>
+        <div className="result-actions">
+          <button type="button" className="btn btn--block btn--lg btn--green" onClick={onContinue}>Continue</button>
+          {hearts > 0 && <button type="button" className="btn btn--block btn--ghost-action" onClick={onPractice}>Practice again</button>}
+        </div>
       </div>
     );
   }
 
-  function formatCountdown(totalSeconds) {
-    const hh = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-    const mm = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-    const ss = String(totalSeconds % 60).padStart(2, '0');
-    return hh + ':' + mm + ':' + ss;
-  }
-
-  function LockedScreen({ onReset }) {
-    const [time, setTime] = useState(REFILL_SECONDS);
-    const tick = useRef(null);
-
-    useEffect(() => {
-      tick.current = setInterval(() => setTime((t) => (t > 0 ? t - 1 : 0)), 1000);
-      return () => clearInterval(tick.current);
-    }, []);
+  function LockedScreen({ account, maxHearts, refillCost, refillLabel, onTryPlus, onBuyRefill, onPractice, onBack }) {
+    const canBuy = account.gems >= refillCost;
 
     return (
       <div className="screen screen--center locked">
+        <button type="button" className="close-btn locked-close" onClick={onBack} aria-label="Back to path">✕</button>
         <div className="locked-mascot">
-          <Pip mood="sad" size={138} />
+          <Pip mood="sad" size={132} />
         </div>
-        <h1 className="locked-title font-display">You’re out of hearts!</h1>
-        <p className="locked-sub">No more lives this round. Refill to keep the streak — or wait it out.</p>
+        <h1 className="locked-title font-display">You’re out of hearts</h1>
+        <p className="locked-sub">Hearts are the pressure point: wait, earn, spend gems, or upgrade.</p>
 
         <div className="super-card">
-          <div className="super-glow" />
           <div className="super-head">
-            <span className="super-badge font-display">
-              PARLA<span>+</span>
-            </span>
-            <span className="super-tag">Most popular</span>
+            <span className="super-badge font-display">PARLA<span>+</span></span>
+            <span className="super-tag">Best value</span>
           </div>
           <div className="super-title font-display">Unlimited hearts</div>
           <ul className="super-list">
-            <li><span className="tick">✓</span> Never run out of lives</li>
-            <li><span className="tick">✓</span> No waiting, no ads</li>
-            <li><span className="tick">✓</span> Personalized practice</li>
+            <li><span className="tick">✓</span> Make mistakes without waiting</li>
+            <li><span className="tick">✓</span> Remove ads from recovery flows</li>
+            <li><span className="tick">✓</span> Keep practicing after hard lessons</li>
           </ul>
-          <button type="button" className="btn btn--block btn--lg btn--gold">Try Parla+ free</button>
+          <button type="button" className="btn btn--block btn--lg btn--gold" onClick={onTryPlus}>Try Parla+ free</button>
           <div className="super-fine">7 days free, then $6.99/mo</div>
+        </div>
+
+        <div className="recovery-grid">
+          <button type="button" className="recovery-card" onClick={onPractice}>
+            <span className="recovery-icon">＋</span>
+            <span><b>Practice</b><small>Earn 1 heart</small></span>
+          </button>
+          <button type="button" className="recovery-card" disabled={!canBuy} onClick={onBuyRefill}>
+            <span className="recovery-icon">💎</span>
+            <span><b>Refill all</b><small>{refillCost} gems · {account.gems} owned</small></span>
+          </button>
         </div>
 
         <div className="refill-row">
           <div className="refill-timer">
-            <span className="refill-cap">Free hearts in</span>
-            <span className="refill-clock font-display">{formatCountdown(time)}</span>
+            <span className="refill-cap">Free heart in</span>
+            <span className="refill-clock font-display">{refillLabel}</span>
           </div>
+          <div className="heart-meter">{account.hearts}/{maxHearts} hearts</div>
         </div>
-
-        <button type="button" className="locked-reset" onClick={onReset}>
-          Or start over with full hearts
-        </button>
       </div>
     );
   }
@@ -190,19 +263,16 @@
 
     return (
       <div className="screen landing screen-fade">
-        <div className="landing-glow" aria-hidden="true" />
         <div className="landing-body">
           <div className="landing-mascot landing-enter-mascot">
             <Mascot state="idle" size={148} />
           </div>
-          <h1 className="landing-headline landing-enter-headline">
-            Learn a language in minutes a day.
-          </h1>
-          <p className="landing-sub landing-enter-sub">Bite-sized lessons. Real progress.</p>
+          <h1 className="landing-headline landing-enter-headline">Learn Spanish through daily streaks.</h1>
+          <p className="landing-sub landing-enter-sub">A sharper clone of the quiz, hearts, XP, and premium loop.</p>
         </div>
         <div className="landing-actions landing-enter-cta">
-          <PillButton label="Get Started" onClick={() => onNext('language')} />
-          <GhostLink label="I already have an account" onClick={() => onNext('language')} />
+          <PillButton label="Get Started" onClick={onNext} />
+          <GhostLink label="I already have an account" onClick={onNext} />
         </div>
       </div>
     );
@@ -214,8 +284,8 @@
     return (
       <div className="screen language screen-fade">
         <header className="lang-header">
-          <BackButton onClick={() => onBack('landing')} />
-          <h1 className="lang-title">What do you want to learn?</h1>
+          <BackButton onClick={onBack} />
+          <h1 className="lang-title">Choose your course</h1>
         </header>
         <div className="lang-grid">
           {LANGUAGES.map((lang) => (
@@ -224,7 +294,7 @@
               flag={lang.flag}
               name={lang.name}
               available={lang.available}
-              onSelect={() => onNext('quiz')}
+              onSelect={() => onNext(lang.id)}
             />
           ))}
         </div>
@@ -239,6 +309,7 @@
     Star,
     LandingScreen,
     LanguageSelectScreen,
+    LessonMapScreen,
     QuizMascot,
   });
 })();
