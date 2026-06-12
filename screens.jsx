@@ -1,14 +1,12 @@
 (function () {
-  const { useEffect, useState, useRef } = React;
+  const { useEffect, useMemo, useState, useRef } = React;
   const Pip = window.Pip;
 
   const CONFETTI_COLORS = ['var(--green)', 'var(--blue)', 'var(--purple)', 'var(--yellow)', 'var(--coral)'];
   const REFILL_SECONDS = 4 * 60 * 60;
 
   function Confetti({ run }) {
-    if (!run) return null;
-
-    const bits = Array.from({ length: 34 }).map((_, i) => ({
+    const bits = useMemo(() => Array.from({ length: 34 }).map((_, i) => ({
       left: Math.random() * 100,
       top: 4 + Math.random() * 78,
       delay: Math.random() * 0.4,
@@ -16,7 +14,9 @@
       rot: Math.random() * 360,
       color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
       round: Math.random() > 0.5,
-    }));
+    })), [run]);
+
+    if (!run) return null;
 
     return (
       <div className="confetti">
@@ -101,7 +101,7 @@
           </div>
           <div className="score-pill">
             <span className="score-num font-display" style={{ color: 'var(--yellow-d)' }}>
-              +{score * 12}
+              +{score * 10}
             </span>
             <span className="score-cap">XP earned</span>
           </div>
