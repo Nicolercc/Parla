@@ -1,6 +1,7 @@
 (function () {
-  const { useState, useCallback } = React;
-  const Q = window.PARLA_QUESTIONS;
+  const { useState, useCallback, useEffect, useMemo } = React;
+  const LESSONS = window.PARLA_LESSONS;
+  const OnboardingFlow = window.OnboardingFlow;
   const {
     ProgressBar,
     HeartsDisplay,
@@ -15,7 +16,6 @@
     LessonMapScreen,
     QuizMascot,
   } = window;
-
 
   const CONFIG = {
     maxHearts: 5,
@@ -276,20 +276,12 @@
     return isCorrect ? 'Nice!' : 'Review it once.';
   }
 
-  function QuizScreen({ q, account, economy, rootStyle, onExit }) {
+  function QuizScreen({ q, account, economy, lesson, rootStyle, onExit }) {
     const canAct = q.selectedOption !== null;
-    const recoverToPath = (action) => {
+
+    const recoverAndExit = (action) => {
       action();
       onExit();
-  function QuizScreen({ q, rootStyle }) {
-    const mood = mascotMood(q);
-
-    // Onboarding runs once per session, before the quiz (PRD section 11).
-    const [profile, setProfile] = useState(null);
-
-    const onAction = () => {
-      if (q.isChecked) q.advance();
-      else q.checkAnswer();
     };
 
     if (q.phase === 'locked') {
@@ -299,22 +291,23 @@
           maxHearts={CONFIG.maxHearts}
           refillCost={CONFIG.refillCost}
           refillLabel={economy.refillLabel}
-          onTryPlus={() => recoverToPath(economy.activatePlus)}
-          onBuyRefill={() => recoverToPath(economy.buyRefill)}
-          onPractice={() => recoverToPath(economy.earnPracticeHeart)}
+          onTryPlus={() => recoverAndExit(economy.activatePlus)}
+          onBuyRefill={() => recoverAndExit(economy.buyRefill)}
+          onPractice={() => recoverAndExit(economy.earnPracticeHeart)}
           onBack={onExit}
         />
       );
     }
 
     if (q.phase === 'complete') {
+      const passed = q.score >= Math.ceil(q.total * 0.6);
       return (
         <ResultScreen
           score={q.score}
           total={q.total}
           hearts={account.hearts}
-          xpEarned={LESSONS[0].xp + q.score * 2}
-          gemsEarned={q.score >= Math.ceil(q.total * 0.6) ? 25 : 8}
+          xpEarned={lesson.xp + q.score * 2}
+          gemsEarned={passed ? 25 : 8}
           onContinue={onExit}
           onPractice={q.resetQuiz}
         />
@@ -322,30 +315,17 @@
     }
 
     return (
-      <div className="app" style={rootStyle}>
-        <div className="phone">
-          {profile === null ? (
-            <OnboardingFlow onComplete={setProfile} />
-          ) : q.phase === 'locked' ? (
-            <LockedScreen onReset={q.resetQuiz} />
-          ) : q.phase === 'complete' ? (
-            <ResultScreen score={q.score} total={q.total} hearts={q.hearts} onReset={q.resetQuiz} />
-          ) : (
-            <div className="screen quiz">
-              <div className="topbar">
-                <button type="button" className="close-btn" onClick={q.resetQuiz} aria-label="Restart">
-                  ✕
-                </button>
-                <ProgressBar current={q.currentIndex} total={q.total} />
-                <HeartsDisplay hearts={q.hearts} maxHearts={CONFIG.maxHearts} />
-              </div>
       <div className="screen quiz screen-fade" style={rootStyle}>
         <div className="topbar">
           <button type="button" className="close-btn" onClick={onExit} aria-label="Exit lesson">
             ✕
           </button>
           <ProgressBar current={q.currentIndex + 1} total={q.total} />
-          <HeartsDisplay hearts={account.isPlus ? CONFIG.maxHearts : account.hearts} maxHearts={CONFIG.maxHearts} isPlus={account.isPlus} />
+          <HeartsDisplay
+            hearts={account.isPlus ? CONFIG.maxHearts : account.hearts}
+            maxHearts={CONFIG.maxHearts}
+            isPlus={account.isPlus}
+          />
         </div>
 
         <div className="scene">
@@ -394,18 +374,34 @@
     );
   }
 
+  function initialPhase() {
+    const acc = loadAccount();
+    if (!acc.hasStarted) return 'onboarding';
+    return 'home';
+  }
+
   function App() {
     const economy = useAccount();
     const { account } = economy;
-    const [appPhase, setAppPhase] = useState(() => (loadAccount().hasStarted ? 'home' : 'landing'));
+    const [appPhase, setAppPhase] = useState(initialPhase);
     const lesson = LESSONS[0];
-    const q = useQuizState({ lesson, account, loseHeart: economy.loseHeart, completeLesson: economy.completeLesson });
+    const q = useQuizState({
+      lesson,
+      account,
+      loseHeart: economy.loseHeart,
+      completeLesson: economy.completeLesson,
+    });
     const rootStyle = useMemo(() => ({ '--green': CONFIG.accent.c, '--green-d': CONFIG.accent.d }), []);
 
     const goHome = useCallback(() => {
       q.resetQuiz();
       setAppPhase('home');
     }, [q.resetQuiz]);
+
+    const finishOnboarding = useCallback((profile) => {
+      economy.start(profile.language || 'es');
+      setAppPhase('home');
+    }, [economy]);
 
     const beginLanguage = useCallback((languageId) => {
       economy.start(languageId);
@@ -425,8 +421,15 @@
     return (
       <div className="app">
         <div className={'phone' + (appPhase === 'quiz' ? ' phone--quiz' : '')}>
-          {appPhase === 'landing' && <LandingScreen onNext={() => setAppPhase('language')} />}
-          {appPhase === 'language' && <LanguageSelectScreen onNext={beginLanguage} onBack={() => setAppPhase('landing')} />}
+          {appPhase === 'onboarding' && (
+            <OnboardingFlow onComplete={finishOnboarding} />
+          )}
+          {appPhase === 'landing' && (
+            <LandingScreen onNext={() => setAppPhase('language')} />
+          )}
+          {appPhase === 'language' && (
+            <LanguageSelectScreen onNext={beginLanguage} onBack={() => setAppPhase('landing')} />
+          )}
           {appPhase === 'home' && (
             <LessonMapScreen
               account={account}
@@ -440,7 +443,16 @@
               onPractice={economy.earnPracticeHeart}
             />
           )}
-          {appPhase === 'quiz' && <QuizScreen q={q} account={account} economy={economy} rootStyle={rootStyle} onExit={goHome} />}
+          {appPhase === 'quiz' && (
+            <QuizScreen
+              q={q}
+              account={account}
+              economy={economy}
+              lesson={lesson}
+              rootStyle={rootStyle}
+              onExit={goHome}
+            />
+          )}
         </div>
       </div>
     );
