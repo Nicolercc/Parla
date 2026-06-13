@@ -123,6 +123,13 @@ assert(
 const onboardingFlowExports = (onboarding.match(/function OnboardingFlow/g) || []).length;
 assert(onboardingFlowExports === 1, 'onboarding.jsx must define exactly one OnboardingFlow');
 
+const mascot = read('mascot.jsx');
+assert(!mascot.includes('MASCOT_CSS'), 'mascot.jsx must not inject duplicate MASCOT_CSS');
+assert(mascot.includes('function Pip('), 'mascot.jsx must define Pip as the single SVG implementation');
+assert(mascot.includes('STATE_TO_MOOD'), 'Mascot must map legacy states to Pip moods');
+assert(mascot.includes('gentleCorrection'), 'Pip must support gentleCorrection mood for wrong answers');
+assert(screens.includes('mood="listening"'), 'QuizMascot must use listening mood when an option is selected');
+
 const BANNED_PIP_VOICE = /Pip says|told Pip|Pip saved|Pip agrees|Pip marked|Pip will wait/i;
 for (const file of ['app.jsx', 'screens.jsx', 'ui.jsx', 'onboarding.jsx', 'profile.js', 'mascot.jsx']) {
   assert(!BANNED_PIP_VOICE.test(read(file)), `${file} must not use banned third-person Pip copy`);
