@@ -15,6 +15,8 @@
   --yellow:#FFD23C; --yellow-d:#E9A800;
   --coral:#FF5A7A;  --coral-d:#E5274C;
   --orange:#FF9600;
+  --panda:#C95F2D; --panda-d:#76341F;
+  --cream:#FFF1D6;
   --bg-deep:#F7F7F7;
   --surface:#FFFFFF;
   --border:#E5E5E5;
@@ -48,7 +50,7 @@ button{font-family:inherit; cursor:pointer; border:none; background:none; transi
 }
 @media(min-width:480px){
   .phone{ border-radius:40px; height:min(880px,94dvh);
-    box-shadow:0 30px 70px -20px rgba(0,0,0,.18),0 0 0 1px var(--border); }
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.18),0 0 0 1px rgba(43,42,74,.06); }
 }
 .screen{ position:relative; flex:1; display:flex; flex-direction:column; min-height:0; }
 .screen-fade{ animation:screenFade 150ms ease both; }
@@ -285,7 +287,7 @@ button{font-family:inherit; cursor:pointer; border:none; background:none; transi
 .pip svg{ overflow:visible; }
 .pip-body{ transform-box:fill-box; transform-origin:50% 100%; animation:pipBob 2.6s ease-in-out infinite; }
 @keyframes pipBob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-5px) } }
-.pip-sprout{ transform-box:fill-box; transform-origin:50% 100%; animation:pipSway 3.2s ease-in-out infinite; }
+.pip-ears{ transform-box:fill-box; transform-origin:50% 100%; animation:pipSway 3.2s ease-in-out infinite; }
 @keyframes pipSway{ 0%,100%{ transform:rotate(-4deg) } 50%{ transform:rotate(4deg) } }
 .pip-arm-l{ transform-box:fill-box; transform-origin:80% 20%; animation:pipArmL 2.6s ease-in-out infinite; }
 .pip-arm-r{ transform-box:fill-box; transform-origin:20% 20%; animation:pipArmR 2.6s ease-in-out infinite; }
