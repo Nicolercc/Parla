@@ -300,6 +300,10 @@ button{font-family:inherit; cursor:pointer; border:none; background:none; transi
 .pip--sad.pip-react{ animation:pip-shake 0.45s cubic-bezier(.36,.07,.19,.97); }
 @keyframes pip-shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)} 80%{transform:translateX(-4px)} }
 .pip--thinking{ animation:pip-pulse 1.8s ease-in-out infinite; }
+.pip--listening .pip-pupil{ transition:transform .15s ease; }
+.pip--gentleCorrection .pip-body{ animation:pipBob 2.6s ease-in-out infinite; }
+.pip--worried .pip-body{ animation:pipBob 1.4s ease-in-out infinite; }
+.pip--celebrating.pip-react{ animation:pip-bounce 0.5s cubic-bezier(.36,.07,.19,.97); }
 @keyframes pip-pulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
 .pip--dizzy.pip-react{ animation:pipWobble .8s ease 1; }
 @keyframes pipWobble{ 0%,100%{transform:rotate(0)} 25%{transform:rotate(-10deg)} 75%{transform:rotate(10deg)} }

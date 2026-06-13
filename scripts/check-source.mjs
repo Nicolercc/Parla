@@ -123,12 +123,22 @@ assert(
 const onboardingFlowExports = (onboarding.match(/function OnboardingFlow/g) || []).length;
 assert(onboardingFlowExports === 1, 'onboarding.jsx must define exactly one OnboardingFlow');
 
+const mascot = read('mascot.jsx');
+assert(!mascot.includes('MASCOT_CSS'), 'mascot.jsx must not inject duplicate MASCOT_CSS');
+assert(mascot.includes('function Pip('), 'mascot.jsx must define Pip as the single SVG implementation');
+assert(mascot.includes('STATE_TO_MOOD'), 'Mascot must map legacy states to Pip moods');
+assert(mascot.includes('gentleCorrection'), 'Pip must support gentleCorrection mood for wrong answers');
+assert(screens.includes('mood="listening"'), 'QuizMascot must use listening mood when an option is selected');
+
+const BANNED_PIP_VOICE = /Pip says|told Pip|Pip saved|Pip agrees|Pip marked|Pip will wait/i;
+for (const file of ['app.jsx', 'screens.jsx', 'ui.jsx', 'onboarding.jsx', 'profile.js', 'mascot.jsx']) {
+  assert(!BANNED_PIP_VOICE.test(read(file)), `${file} must not use banned third-person Pip copy`);
+}
+
 assert(onboarding.includes('PlanSummaryStep'), 'onboarding.jsx must include Plan Summary step');
 assert(onboarding.includes('pipAcknowledgement'), 'onboarding.jsx must use Pip acknowledgement copy');
 assert(!onboarding.includes('PlanTray'), 'onboarding.jsx must not include visible Plan Tray');
 assert(!onboarding.includes('ob-plan-tray'), 'onboarding.jsx must not render plan tray UI');
-assert(!onboarding.includes('Pip says'), 'onboarding.jsx must not use third-person Pip copy');
-assert(!read('profile.js').includes('Pip says'), 'profile.js must not use third-person Pip copy');
 
 const summarySample = context.window.PARLA_META.buildPlanSummary({
   selectedLanguage: 'es',
