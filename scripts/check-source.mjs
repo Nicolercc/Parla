@@ -107,6 +107,33 @@ assert(
   context.window.PARLA_EVENT_UTILS && typeof context.window.PARLA_EVENT_UTILS.eventView === 'function',
   'events.js must export PARLA_EVENT_UTILS.eventView',
 );
+const eventUtils = context.window.PARLA_EVENT_UTILS;
+const dailyWarmup = events.find((event) => event.id === 'daily-warmup');
+const summerFiesta = events.find((event) => event.id === 'summer-fiesta');
+assert(dailyWarmup, 'PARLA_EVENTS must include daily-warmup');
+assert(summerFiesta, 'PARLA_EVENTS must include summer-fiesta');
+
+const june19 = new Date('2026-06-19T12:00:00').getTime();
+const june20 = new Date('2026-06-20T12:00:00').getTime();
+const june21 = new Date('2026-06-21T12:00:00').getTime();
+const june25 = new Date('2026-06-25T12:00:00').getTime();
+assert(eventUtils.eventSchedule(june19, summerFiesta).phase === 'upcoming', 'fixed event must be upcoming before its start date');
+assert(eventUtils.eventSchedule(june21, summerFiesta).phase === 'open', 'fixed event must open on its start date');
+assert(eventUtils.eventSchedule(june25, summerFiesta).phase === 'closed', 'fixed event must close after its duration');
+
+const dailyAccount = {
+  claimedEvents: ['daily-warmup#2026-06-19'],
+  dailyProgress: {
+    '2026-06-19': { correctAnswers: 5 },
+    '2026-06-20': { correctAnswers: 0 },
+  },
+};
+const todayView = eventUtils.eventView(dailyAccount, dailyWarmup, june19);
+const tomorrowView = eventUtils.eventView(dailyAccount, dailyWarmup, june20);
+assert(todayView.claimKey === 'daily-warmup#2026-06-19', 'daily event claim key must include the local date');
+assert(todayView.claimed && todayView.complete, 'daily event should be claimed and complete for the claimed date');
+assert(tomorrowView.claimKey === 'daily-warmup#2026-06-20', 'daily event claim key must change on the next date');
+assert(!tomorrowView.claimed && !tomorrowView.complete, 'daily event claim and progress must reset on the next date');
 
 const eventsJsx = read('events.jsx');
 assert(eventsJsx.includes('function EventTabScreen'), 'events.jsx must define EventTabScreen');
