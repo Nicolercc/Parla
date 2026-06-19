@@ -5,7 +5,7 @@ const LESSONS = window.PARLA_LESSONS;
   const OnboardingFlow = window.OnboardingFlow;
   const { personalizeHome, isProfileComplete } = window.PARLA_META;
   const { quizBubble } = window.PARLA_COPY;
-  const { anyEventClaimable } = window.PARLA_EVENT_UTILS;
+  const { anyEventClaimable, eventDateKey } = window.PARLA_EVENT_UTILS;
   const {
     ProgressBar,
     HeartsDisplay,
@@ -55,6 +55,7 @@ const LESSONS = window.PARLA_LESSONS;
       lastPlayedDate: null,
       lessonsCompletedTotal: 0,
       correctAnswersTotal: 0,
+      dailyProgress: {},
       claimedEvents: [],
       unlimitedUntil: null,
       lessonResults: {},
@@ -165,7 +166,10 @@ const LESSONS = window.PARLA_LESSONS;
       const passed = score >= Math.ceil(lesson.questions.length * 0.6);
       update((current) => {
         const today = todayKey();
+        const progressDay = eventDateKey();
         const yesterday = todayKey(Date.now() - DAY_MS);
+        const currentDayProgress = (current.dailyProgress || {})[progressDay] || {};
+        const currentDayLessonResults = currentDayProgress.lessonResults || {};
         let streak = current.streak;
         let lastPlayedDate = current.lastPlayedDate;
         let streakShield = current.streakShield;
@@ -194,6 +198,17 @@ const LESSONS = window.PARLA_LESSONS;
           completedLessons: passed ? Math.max(current.completedLessons, 1) : current.completedLessons,
           lessonsCompletedTotal: (current.lessonsCompletedTotal || 0) + (passed ? 1 : 0),
           correctAnswersTotal: (current.correctAnswersTotal || 0) + score,
+          dailyProgress: {
+            ...(current.dailyProgress || {}),
+            [progressDay]: {
+              correctAnswers: (currentDayProgress.correctAnswers || 0) + score,
+              lessonsCompleted: (currentDayProgress.lessonsCompleted || 0) + (passed ? 1 : 0),
+              lessonResults: {
+                ...currentDayLessonResults,
+                [lesson.id]: Math.max(currentDayLessonResults[lesson.id] || 0, score),
+              },
+            },
+          },
           lessonResults: {
             ...(current.lessonResults || {}),
             [lesson.id]: Math.max((current.lessonResults || {})[lesson.id] || 0, score),
