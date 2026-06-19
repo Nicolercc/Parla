@@ -1,5 +1,4 @@
-(function () {
-  const { useState, useEffect, useRef } = React;
+import React, { useState, useEffect, useRef } from 'react';
 
   const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
@@ -190,17 +189,16 @@
     );
   }
 
-  Object.assign(window, {
-    Heart,
-    ProgressBar,
-    HeartsDisplay,
-    OptionButton,
-    QuestionCard,
-    FeedbackBar,
-    ActionButton,
-    BackButton,
-    PillButton,
-    GhostLink,
-    LanguageCard,
-  });
-})();
+Object.assign(window, {
+  Heart,
+  ProgressBar,
+  HeartsDisplay,
+  OptionButton,
+  QuestionCard,
+  FeedbackBar,
+  ActionButton,
+  BackButton,
+  PillButton,
+  GhostLink,
+  LanguageCard,
+});

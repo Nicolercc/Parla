@@ -1,7 +1,7 @@
-(function () {
-  const { useEffect, useMemo, useState } = React;
-  const Pip = window.Pip;
-  const Mascot = window.Mascot;
+import React, { useEffect, useMemo, useState } from 'react';
+
+const Pip = window.Pip;
+const Mascot = window.Mascot;
 
   function QuizMascot({ isChecked, isCorrect, selectedOption, size = 104 }) {
     if (isChecked) return <Mascot state={isCorrect ? 'correct' : 'wrong'} size={size} />;
@@ -254,12 +254,11 @@
     );
   }
 
-  Object.assign(window, {
-    ResultScreen,
-    LockedScreen,
-    Confetti,
-    Star,
-    LessonMapScreen,
-    QuizMascot,
-  });
-})();
+Object.assign(window, {
+  ResultScreen,
+  LockedScreen,
+  Confetti,
+  Star,
+  LessonMapScreen,
+  QuizMascot,
+});

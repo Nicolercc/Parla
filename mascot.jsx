@@ -1,7 +1,7 @@
+import React, { useEffect, useRef } from 'react';
+
 // Pip: single SVG character for onboarding, home, quiz, and recovery.
 // Mascot / QuizMascot: thin compatibility wrappers (legacy state → mood).
-(function () {
-  const { useEffect, useRef } = React;
   let pipInstance = 0;
 
   const PIP_MOUTHS = {
@@ -151,6 +151,5 @@
     return <Pip mood={STATE_TO_MOOD[state] || 'idle'} size={size} color={color} />;
   }
 
-  window.Mascot = Mascot;
-  window.Pip = Pip;
-})();
+window.Mascot = Mascot;
+window.Pip = Pip;

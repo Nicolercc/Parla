@@ -1,8 +1,8 @@
-(function () {
-  const { useState, useMemo } = React;
-  const Pip = window.Pip;
-  const ActionButton = window.ActionButton;
-  const BackButton = window.BackButton;
+import React, { useState, useMemo } from 'react';
+
+const Pip = window.Pip;
+const ActionButton = window.ActionButton;
+const BackButton = window.BackButton;
   const {
     LANGUAGES,
     GOALS,
@@ -156,7 +156,9 @@
         <ObNav showBack onBack={onBack} />
         <div className="ob-head">
           <h1 className="ob-title font-display">{title}</h1>
-          {sub && <p className="ob-sub">{sub}</p>}
+          {sub && (
+            <p className="ob-sub">{sub}</p>
+          )}
           <PipAck message={ack} />
         </div>
         <div className="ob-scroll">
@@ -168,17 +170,26 @@
                 className={'goal-row ' + (selected === opt.id ? 'goal-row--sel' : '')}
                 onClick={() => onSelect(opt.id)}
               >
-                {opt.emoji && <span className="row-emoji" aria-hidden="true">{opt.emoji}</span>}
+                {opt.emoji && (
+                  <span className="row-emoji" aria-hidden="true">{opt.emoji}</span>
+                )}
                 <span className="row-text">
                   <span className="goal-label">{opt.label}</span>
-                  {opt.detail && <span className="row-detail">{opt.detail}</span>}
+                  {opt.detail && (
+                    <span className="row-detail">{opt.detail}</span>
+                  )}
                 </span>
               </button>
             ))}
           </div>
         </div>
         <div className="footer">
-          <ActionButton label={cta || 'Continue'} onClick={onContinue} disabled={selected === null} variant="green" />
+          <ActionButton
+            label={cta ? cta : 'Continue'}
+            onClick={onContinue}
+            disabled={selected === null}
+            variant="green"
+          />
         </div>
       </div>
     );
@@ -337,5 +348,4 @@
     );
   }
 
-  Object.assign(window, { OnboardingFlow });
-})();
+Object.assign(window, { OnboardingFlow });

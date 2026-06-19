@@ -1,6 +1,7 @@
-(function () {
-  const { useState, useCallback, useEffect, useMemo } = React;
-  const LESSONS = window.PARLA_LESSONS;
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom/client';
+
+const LESSONS = window.PARLA_LESSONS;
   const OnboardingFlow = window.OnboardingFlow;
   const { personalizeHome, isProfileComplete } = window.PARLA_META;
   const { quizBubble } = window.PARLA_COPY;
@@ -479,5 +480,4 @@
     );
   }
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-})();
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
