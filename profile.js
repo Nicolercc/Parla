@@ -1,5 +1,4 @@
-(function () {
-  const LANGUAGES = [
+const LANGUAGES = [
     { id: 'es', name: 'Spanish', learners: '34M learners', enabled: true },
     { id: 'fr', name: 'French', learners: '17M learners', enabled: false },
     { id: 'ja', name: 'Japanese', learners: '12M learners', enabled: false },
@@ -180,23 +179,22 @@
     };
   }
 
-  Object.assign(window, {
-    PARLA_META: {
-      LANGUAGES,
-      GOALS,
-      SOURCES,
-      REASONS,
-      languageById,
-      levelsFor,
-      personalizeHome,
-      isProfileComplete,
-      buildPlanSummary,
-      pipAcknowledgement,
-      GOAL_MINUTES,
-    },
-    PARLA_COPY: {
-      quizBubble,
-      resultCopy,
-    },
-  });
-})();
+Object.assign(window, {
+  PARLA_META: {
+    LANGUAGES,
+    GOALS,
+    SOURCES,
+    REASONS,
+    languageById,
+    levelsFor,
+    personalizeHome,
+    isProfileComplete,
+    buildPlanSummary,
+    pipAcknowledgement,
+    GOAL_MINUTES,
+  },
+  PARLA_COPY: {
+    quizBubble,
+    resultCopy,
+  },
+});

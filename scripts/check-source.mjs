@@ -116,6 +116,14 @@ for (const legacy of [
 }
 
 assert(
+  !read('index.html').includes('text/babel'),
+  'index.html must not load raw JSX through browser Babel',
+);
+assert(
+  read('index.html').includes('type="module"'),
+  'index.html must load the Vite bundle entry',
+);
+assert(
   !read('index.html').toLowerCase().includes('already have an account'),
   'index.html must not expose fake account CTA copy',
 );

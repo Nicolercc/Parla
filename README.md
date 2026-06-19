@@ -87,17 +87,14 @@ For the ruthless product and engineering teardown, see [`DUOLINGO_CLONE_AUDIT.md
 git clone https://github.com/Nicolercc/Parla.git
 cd Parla
 
-# Option A — Python (built into macOS/Linux)
-python3 -m http.server 8080
-
-# Option B — Node (npx, no install)
+# Dev server (Vite, hot reload)
 npm run dev
 
-# Option C — open directly (works; a server is nicer for dev)
-open index.html
+# Production bundle smoke test
+npm run build && npm run preview
 ```
 
-Then visit **http://localhost:3000** for `npm run dev`, or **http://localhost:8080** for the Python server.
+Then visit **http://localhost:5173** for `npm run dev`, or **http://localhost:4173** after `npm run preview`.
 
 Run the smoke test with:
 
@@ -105,7 +102,7 @@ Run the smoke test with:
 npm run test
 ```
 
-No `npm install` required. The app loads React, ReactDOM, and Babel from CDN.
+`npm install` once, then Vite precompiles JSX for local dev and Vercel production (`dist/`).
 
 ---
 
@@ -253,7 +250,7 @@ Parla uses a warm, playful aesthetic tuned for learning apps.
 | Safari 15+ | Full |
 | Firefox 90+ | Full |
 
-Requires JavaScript and ES6+. JSX is transpiled at runtime by Babel Standalone — fine for demos and prototypes; a production deployment would typically precompile assets.
+Requires a modern browser. JSX is precompiled with Vite at build time — do not ship raw `.jsx` through browser Babel in production.
 
 ---
 
