@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(new URL('..', import.meta.url).pathname);
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function read(file) {
   return fs.readFileSync(path.join(root, file), 'utf8');
@@ -18,6 +19,7 @@ const context = { window: {} };
 vm.createContext(context);
 vm.runInContext(read('questions.js'), context, { filename: 'questions.js' });
 vm.runInContext(read('profile.js'), context, { filename: 'profile.js' });
+vm.runInContext(read('events.js'), context, { filename: 'events.js' });
 
 const lessons = context.window.PARLA_LESSONS;
 assert(Array.isArray(lessons) && lessons.length > 0, 'PARLA_LESSONS must be a non-empty array');
@@ -67,6 +69,81 @@ for (const required of ['LessonMapScreen', 'LockedScreen', 'ResultScreen']) {
 for (const required of ['HeartsDisplay', 'FeedbackBar', 'QuestionCard']) {
   assert(ui.includes(required), `ui.jsx must define/export ${required}`);
 }
+
+// Event Tab (PRD 11.3)
+const events = context.window.PARLA_EVENTS;
+assert(Array.isArray(events) && events.length >= 3, 'PARLA_EVENTS must have at least 3 events (2 standard + 1 special)');
+const VALID_EVENT_METRICS = new Set(['correctAnswers', 'lessonsCompleted', 'lessonScore']);
+const VALID_REWARD_TYPES = new Set(['gems', 'hearts', 'unlimited', 'streak', 'shield', 'badge']);
+const lessonIds = new Set(lessons.map((l) => l.id));
+function assertReward(reward, ctx) {
+  assert(reward && VALID_REWARD_TYPES.has(reward.type), `${ctx} needs a valid reward.type`);
+  assert(typeof reward.label === 'string' && reward.label, `${ctx} reward needs a label`);
+}
+let specialEvents = 0;
+for (const event of events) {
+  assert(typeof event.id === 'string' && event.id, 'event.id is required');
+  assert(event.kind === 'standard' || event.kind === 'special', `${event.id} needs kind 'standard' or 'special'`);
+  assert(typeof event.title === 'string' && event.title, `${event.id} needs a title`);
+  assert(typeof event.description === 'string' && event.description, `${event.id} needs a description`);
+  assert(VALID_EVENT_METRICS.has(event.metric), `${event.id} has unknown metric: ${event.metric}`);
+  if (event.metric === 'lessonScore') {
+    assert(lessonIds.has(event.lessonId), `${event.id} references unknown lessonId: ${event.lessonId}`);
+  }
+  if (event.tiers) {
+    assert(Array.isArray(event.tiers) && event.tiers.length > 0, `${event.id} tiers must be a non-empty array`);
+    for (const tier of event.tiers) {
+      assert(Number.isInteger(tier.at) && tier.at > 0, `${event.id} tier needs a positive 'at'`);
+      assertReward(tier.reward, `${event.id} tier ${tier.at}`);
+    }
+  } else {
+    assert(Number.isInteger(event.target) && event.target > 0, `${event.id} needs a positive target`);
+    assertReward(event.reward, event.id);
+  }
+  if (event.kind === 'special') specialEvents += 1;
+}
+assert(specialEvents >= 1, 'PARLA_EVENTS must include at least one special event');
+assert(
+  context.window.PARLA_EVENT_UTILS && typeof context.window.PARLA_EVENT_UTILS.eventView === 'function',
+  'events.js must export PARLA_EVENT_UTILS.eventView',
+);
+const eventUtils = context.window.PARLA_EVENT_UTILS;
+const dailyWarmup = events.find((event) => event.id === 'daily-warmup');
+const summerFiesta = events.find((event) => event.id === 'summer-fiesta');
+assert(dailyWarmup, 'PARLA_EVENTS must include daily-warmup');
+assert(summerFiesta, 'PARLA_EVENTS must include summer-fiesta');
+
+const june19 = new Date('2026-06-19T12:00:00').getTime();
+const june20 = new Date('2026-06-20T12:00:00').getTime();
+const june21 = new Date('2026-06-21T12:00:00').getTime();
+const june25 = new Date('2026-06-25T12:00:00').getTime();
+assert(eventUtils.eventSchedule(june19, summerFiesta).phase === 'upcoming', 'fixed event must be upcoming before its start date');
+assert(eventUtils.eventSchedule(june21, summerFiesta).phase === 'open', 'fixed event must open on its start date');
+assert(eventUtils.eventSchedule(june25, summerFiesta).phase === 'closed', 'fixed event must close after its duration');
+
+const dailyAccount = {
+  claimedEvents: ['daily-warmup#2026-06-19'],
+  dailyProgress: {
+    '2026-06-19': { correctAnswers: 5 },
+    '2026-06-20': { correctAnswers: 0 },
+  },
+};
+const todayView = eventUtils.eventView(dailyAccount, dailyWarmup, june19);
+const tomorrowView = eventUtils.eventView(dailyAccount, dailyWarmup, june20);
+assert(todayView.claimKey === 'daily-warmup#2026-06-19', 'daily event claim key must include the local date');
+assert(todayView.claimed && todayView.complete, 'daily event should be claimed and complete for the claimed date');
+assert(tomorrowView.claimKey === 'daily-warmup#2026-06-20', 'daily event claim key must change on the next date');
+assert(!tomorrowView.claimed && !tomorrowView.complete, 'daily event claim and progress must reset on the next date');
+
+const eventsJsx = read('events.jsx');
+assert(eventsJsx.includes('function EventTabScreen'), 'events.jsx must define EventTabScreen');
+assert(eventsJsx.includes('function BottomNav'), 'events.jsx must define BottomNav');
+assert(eventsJsx.includes('onPlay'), 'events.jsx must support a themed Play CTA (onPlay)');
+for (const required of ['EventTabScreen', 'BottomNav']) {
+  assert(app.includes(required), `app.jsx must wire ${required}`);
+}
+assert(app.includes('lessonById'), 'app.jsx must launch lessons by id (themed events)');
+assert(app.includes('claimReward'), 'app.jsx must expose the event claim handler');
 
 const sample = context.window.PARLA_META.personalizeHome({
   selectedLanguage: 'es',

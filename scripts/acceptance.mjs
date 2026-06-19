@@ -6,6 +6,8 @@ import { chromium } from 'playwright';
 
 const BASE = process.env.PARLA_URL || 'http://localhost:3456';
 const STORE_KEY = 'parla.account.v2';
+const ACCEPTANCE_NOW = Date.parse('2026-06-19T12:00:00-04:00');
+const ACCEPTANCE_DAY = '2026-06-19';
 
 const results = [];
 const pass = (n, d = '') => { results.push({ ok: true, n, d }); console.log('✓', n, d ? `— ${d}` : ''); };
@@ -78,6 +80,75 @@ async function assertCheck16SingleOnboardingPath(page) {
   else fail('16h fresh localStorage → onboarding only', `ob=${freshOb} home=${freshHome}`);
 }
 
+function completeAccount(overrides = {}) {
+  return {
+    hasStarted: true,
+    selectedLanguage: 'es',
+    source: 'friends',
+    reason: 'travel',
+    level: 'new',
+    dailyGoal: 'casual',
+    hearts: 5,
+    gems: 120,
+    xp: 0,
+    streak: 0,
+    completedLessons: 0,
+    isPlus: false,
+    lastHeartAt: null,
+    lastPlayedDate: null,
+    lessonsCompletedTotal: 0,
+    correctAnswersTotal: 0,
+    dailyProgress: {},
+    claimedEvents: [],
+    unlimitedUntil: null,
+    lessonResults: {},
+    streakShield: false,
+    badges: [],
+    ...overrides,
+  };
+}
+
+async function assertEventTab(page) {
+  const eventReadyAccount = completeAccount({
+    correctAnswersTotal: 15,
+    dailyProgress: {
+      [ACCEPTANCE_DAY]: { correctAnswers: 5, lessonsCompleted: 1, lessonResults: {} },
+    },
+  });
+  await page.evaluate(({ key, account }) => {
+    localStorage.setItem(key, JSON.stringify(account));
+  }, { key: STORE_KEY, account: eventReadyAccount });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: /Events/i }).click();
+  await page.waitForSelector('.events');
+  pass('17 Events tab opens');
+
+  const daily = page.locator('.event-card').filter({ hasText: 'Daily Warm-up' });
+  await daily.getByRole('button', { name: /Open/i }).click();
+  let stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '{}'), STORE_KEY);
+  if ((stored.claimedEvents || []).includes('daily-warmup#2026-06-19')) pass('18 Daily event claim is date-scoped');
+  else fail('18 Daily event claim is date-scoped', JSON.stringify(stored.claimedEvents || []));
+
+  const ladder = page.locator('.event-card').filter({ hasText: 'Accuracy Ladder' });
+  await ladder.getByRole('button', { name: /Open/i }).first().click();
+  stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '{}'), STORE_KEY);
+  if ((stored.claimedEvents || []).includes('accuracy-ladder#3')) pass('19 Accuracy tier claim persists');
+  else fail('19 Accuracy tier claim persists', JSON.stringify(stored.claimedEvents || []));
+
+  await page.evaluate((key) => {
+    const account = JSON.parse(localStorage.getItem(key) || '{}');
+    account.lessonResults = {};
+    localStorage.setItem(key, JSON.stringify(account));
+  }, STORE_KEY);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: /Events/i }).click();
+  await page.locator('.event-hero').filter({ hasText: 'Weekend Travel Sprint' }).getByRole('button', { name: /Play/i }).click();
+  await page.waitForSelector('text=Where is the bathroom?');
+  pass('20 Travel event Play launches themed lesson');
+
+  await page.getByRole('button', { name: /Exit lesson/i }).click();
+}
+
 async function answerWrong(page) {
   const n = await page.locator('.opt').count();
   for (let i = 0; i < n; i++) {
@@ -96,6 +167,21 @@ async function answerWrong(page) {
 async function main() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
+  await page.addInitScript((fixedNow) => {
+    const RealDate = Date;
+    class MockDate extends RealDate {
+      constructor(...args) {
+        if (args.length === 0) super(fixedNow);
+        else super(...args);
+      }
+      static now() {
+        return fixedNow;
+      }
+    }
+    Object.setPrototypeOf(MockDate, RealDate);
+    Object.setPrototypeOf(MockDate.prototype, RealDate.prototype);
+    window.Date = MockDate;
+  }, ACCEPTANCE_NOW);
   const pageErrors = [];
   page.on('pageerror', (e) => pageErrors.push(e.message));
 
@@ -227,6 +313,7 @@ async function main() {
     if (!pageErrors.length) pass('14–15 No page errors');
     else fail('14–15 Page errors', pageErrors.join('; '));
 
+    await assertEventTab(page);
     await assertCheck16SingleOnboardingPath(page);
   } catch (e) {
     fail('Acceptance run', e.message);
