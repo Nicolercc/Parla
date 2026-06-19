@@ -18,6 +18,20 @@ window.PARLA_LESSONS = [
       { id: 10, type: 'choice', prompt: 'friend', instruction: 'Pick the Spanish word.', options: ['hermano', 'amigo', 'vecino', 'maestro'], correctIndex: 1, explain: 'Amigo means friend.' },
     ],
   },
+  {
+    id: 'travel-1',
+    unit: 'Travel',
+    title: 'Travel phrases',
+    subtitle: 'Get around with confidence on your trip',
+    xp: 20,
+    questions: [
+      { id: 1, type: 'choice', prompt: 'Where is the bathroom?', instruction: 'Choose the best translation.', options: ['¿Dónde está el baño?', '¿Qué hora es?', '¿Cuánto cuesta?', '¿Cómo te llamas?'], correctIndex: 0, explain: '¿Dónde está el baño? asks where the bathroom is.' },
+      { id: 2, type: 'choice', prompt: 'A ticket, please', instruction: 'Translate this phrase.', options: ['Un boleto, por favor', 'Una mesa, por favor', 'La cuenta, por favor', 'Un café, por favor'], correctIndex: 0, explain: 'Un boleto means a ticket.' },
+      { id: 3, type: 'choice', prompt: 'How much is it?', instruction: 'Choose the best translation.', options: ['¿Cuánto cuesta?', '¿Dónde vas?', '¿Qué tal?', '¿Cuándo llega?'], correctIndex: 0, explain: '¿Cuánto cuesta? asks the price.' },
+      { id: 4, type: 'choice', prompt: 'the airport', instruction: 'Pick the Spanish word.', options: ['la playa', 'el aeropuerto', 'la estación', 'el hotel'], correctIndex: 1, explain: 'El aeropuerto means the airport.' },
+      { id: 5, type: 'choice', prompt: 'I need a taxi', instruction: 'Translate this sentence.', options: ['Necesito un taxi', 'Tengo un mapa', 'Quiero un menú', 'Busco un tren'], correctIndex: 0, explain: 'Necesito un taxi means I need a taxi.' },
+    ],
+  },
 ];
 
 window.PARLA_QUESTIONS = window.PARLA_LESSONS[0].questions;

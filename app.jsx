@@ -5,6 +5,7 @@ const LESSONS = window.PARLA_LESSONS;
   const OnboardingFlow = window.OnboardingFlow;
   const { personalizeHome, isProfileComplete } = window.PARLA_META;
   const { quizBubble } = window.PARLA_COPY;
+  const { anyEventClaimable } = window.PARLA_EVENT_UTILS;
   const {
     ProgressBar,
     HeartsDisplay,
@@ -16,6 +17,8 @@ const LESSONS = window.PARLA_LESSONS;
     LockedScreen,
     LessonMapScreen,
     QuizMascot,
+    EventTabScreen,
+    BottomNav,
   } = window;
 
   const CONFIG = {
@@ -50,7 +53,23 @@ const LESSONS = window.PARLA_LESSONS;
       isPlus: false,
       lastHeartAt: null,
       lastPlayedDate: null,
+      lessonsCompletedTotal: 0,
+      correctAnswersTotal: 0,
+      claimedEvents: [],
+      unlimitedUntil: null,
+      lessonResults: {},
+      streakShield: false,
+      badges: [],
     };
+  }
+
+  function lessonById(id) {
+    return LESSONS.find((l) => l.id === id) || LESSONS[0];
+  }
+
+  // True when hearts cannot deplete: permanent Parla+ or an active temporary buff.
+  function isUnlimited(account, now = Date.now()) {
+    return account.isPlus || (account.unlimitedUntil != null && now < account.unlimitedUntil);
   }
 
   function loadAccount() {
@@ -63,7 +82,7 @@ const LESSONS = window.PARLA_LESSONS;
   }
 
   function applyHeartRefills(account, now = Date.now()) {
-    if (account.isPlus) {
+    if (isUnlimited(account, now)) {
       return { ...account, hearts: CONFIG.maxHearts, lastHeartAt: null };
     }
 
@@ -86,7 +105,7 @@ const LESSONS = window.PARLA_LESSONS;
   }
 
   function secondsToNextHeart(account, now = Date.now()) {
-    if (account.isPlus || account.hearts >= CONFIG.maxHearts || !account.lastHeartAt) return 0;
+    if (isUnlimited(account, now) || account.hearts >= CONFIG.maxHearts || !account.lastHeartAt) return 0;
     const nextAt = account.lastHeartAt + CONFIG.refillSeconds * 1000;
     return Math.max(0, Math.ceil((nextAt - now) / 1000));
   }
@@ -132,7 +151,7 @@ const LESSONS = window.PARLA_LESSONS;
 
     const loseHeart = useCallback(() => {
       update((current) => {
-        if (current.isPlus) return { ...current, hearts: CONFIG.maxHearts, lastHeartAt: null };
+        if (isUnlimited(current)) return { ...current, hearts: CONFIG.maxHearts, lastHeartAt: null };
         const hearts = Math.max(0, current.hearts - 1);
         return {
           ...current,
@@ -149,13 +168,20 @@ const LESSONS = window.PARLA_LESSONS;
         const yesterday = todayKey(Date.now() - DAY_MS);
         let streak = current.streak;
         let lastPlayedDate = current.lastPlayedDate;
+        let streakShield = current.streakShield;
 
         if (passed) {
-          streak = current.lastPlayedDate === today
-            ? current.streak
-            : current.lastPlayedDate === yesterday
-              ? current.streak + 1
-              : 1;
+          if (current.lastPlayedDate === today) {
+            streak = current.streak;
+          } else if (current.lastPlayedDate === yesterday) {
+            streak = current.streak + 1;
+          } else if (current.streakShield && current.lastPlayedDate) {
+            // Streak Saver absorbs a missed day instead of resetting to 1.
+            streak = current.streak + 1;
+            streakShield = false;
+          } else {
+            streak = 1;
+          }
           lastPlayedDate = today;
         }
 
@@ -164,7 +190,14 @@ const LESSONS = window.PARLA_LESSONS;
           xp: current.xp + (passed ? lesson.xp + score * 2 : score),
           gems: current.gems + (passed ? 25 : 5),
           streak,
+          streakShield,
           completedLessons: passed ? Math.max(current.completedLessons, 1) : current.completedLessons,
+          lessonsCompletedTotal: (current.lessonsCompletedTotal || 0) + (passed ? 1 : 0),
+          correctAnswersTotal: (current.correctAnswersTotal || 0) + score,
+          lessonResults: {
+            ...(current.lessonResults || {}),
+            [lesson.id]: Math.max((current.lessonResults || {})[lesson.id] || 0, score),
+          },
           lastPlayedDate,
         };
       });
@@ -190,6 +223,28 @@ const LESSONS = window.PARLA_LESSONS;
       update((current) => ({ ...current, isPlus: true, hearts: CONFIG.maxHearts, lastHeartAt: null }));
     }, [update]);
 
+    const claimReward = useCallback((claimKey, reward) => {
+      update((current) => {
+        if (!reward || (current.claimedEvents || []).includes(claimKey)) return current;
+        const next = { ...current, claimedEvents: [...(current.claimedEvents || []), claimKey] };
+        if (reward.type === 'gems') {
+          next.gems = current.gems + (reward.amount || 0);
+        } else if (reward.type === 'hearts') {
+          next.hearts = CONFIG.maxHearts;
+          next.lastHeartAt = null;
+        } else if (reward.type === 'unlimited') {
+          next.unlimitedUntil = Date.now() + (reward.days || 1) * DAY_MS;
+        } else if (reward.type === 'streak') {
+          next.streak = current.streak + (reward.amount || 1);
+        } else if (reward.type === 'shield') {
+          next.streakShield = true;
+        } else if (reward.type === 'badge') {
+          next.badges = [...(current.badges || []), claimKey];
+        }
+        return next;
+      });
+    }, [update]);
+
     return {
       account,
       now,
@@ -199,6 +254,7 @@ const LESSONS = window.PARLA_LESSONS;
       buyRefill,
       earnPracticeHeart,
       activatePlus,
+      claimReward,
       refillLabel: formatCountdown(secondsToNextHeart(account, now)),
     };
   }
@@ -245,7 +301,7 @@ const LESSONS = window.PARLA_LESSONS;
         return;
       }
 
-      const shouldLock = !account.isPlus && account.hearts <= 1;
+      const shouldLock = !isUnlimited(account) && account.hearts <= 1;
       loseHeart();
       setPendingLock(shouldLock);
     }, [account.hearts, account.isPlus, currentQuestion, isChecked, loseHeart, selectedOption]);
@@ -301,6 +357,7 @@ const LESSONS = window.PARLA_LESSONS;
 
   function QuizScreen({ q, account, economy, lesson, rootStyle, onExit }) {
     const canAct = q.selectedOption !== null;
+    const unlimited = isUnlimited(account, economy.now);
 
     const recoverAndExit = (action) => {
       action();
@@ -346,9 +403,9 @@ const LESSONS = window.PARLA_LESSONS;
           </button>
           <ProgressBar current={q.currentIndex + 1} total={q.total} />
           <HeartsDisplay
-            hearts={account.isPlus ? CONFIG.maxHearts : account.hearts}
+            hearts={unlimited ? CONFIG.maxHearts : account.hearts}
             maxHearts={CONFIG.maxHearts}
-            isPlus={account.isPlus}
+            isPlus={unlimited}
           />
         </div>
 
@@ -412,7 +469,10 @@ const LESSONS = window.PARLA_LESSONS;
     const economy = useAccount();
     const { account } = economy;
     const [appPhase, setAppPhase] = useState(initialPhase);
-    const lesson = LESSONS[0];
+    const [activeTab, setActiveTab] = useState('learn');
+    const homeLesson = LESSONS[0];
+    const [activeLessonId, setActiveLessonId] = useState(homeLesson.id);
+    const lesson = lessonById(activeLessonId);
     const homeCopy = useMemo(() => personalizeHome(account), [account]);
     const q = useQuizState({
       lesson,
@@ -432,15 +492,17 @@ const LESSONS = window.PARLA_LESSONS;
       setAppPhase('home');
     }, [economy]);
 
-    const startLesson = useCallback(() => {
+    const startLesson = useCallback((lessonId) => {
+      const id = typeof lessonId === 'string' ? lessonId : homeLesson.id;
+      setActiveLessonId(id);
       q.resetQuiz();
-      if (!account.isPlus && account.hearts <= 0) {
+      if (!isUnlimited(account) && account.hearts <= 0) {
         q.lockQuiz();
         setAppPhase('quiz');
         return;
       }
       setAppPhase('quiz');
-    }, [account.hearts, account.isPlus, q.lockQuiz, q.resetQuiz]);
+    }, [account.hearts, account.isPlus, account.unlimitedUntil, homeLesson.id, q.lockQuiz, q.resetQuiz]);
 
     return (
       <div className="app">
@@ -452,18 +514,34 @@ const LESSONS = window.PARLA_LESSONS;
             />
           )}
           {appPhase === 'home' && (
-            <LessonMapScreen
-              account={account}
-              lesson={lesson}
-              homeCopy={homeCopy}
-              maxHearts={CONFIG.maxHearts}
-              refillCost={CONFIG.refillCost}
-              refillLabel={economy.refillLabel}
-              onStartLesson={startLesson}
-              onTryPlus={economy.activatePlus}
-              onBuyRefill={economy.buyRefill}
-              onPractice={economy.earnPracticeHeart}
-            />
+            <>
+              {activeTab === 'learn' ? (
+                <LessonMapScreen
+                  account={account}
+                  lesson={homeLesson}
+                  homeCopy={homeCopy}
+                  maxHearts={CONFIG.maxHearts}
+                  refillCost={CONFIG.refillCost}
+                  refillLabel={economy.refillLabel}
+                  onStartLesson={() => startLesson(homeLesson.id)}
+                  onTryPlus={economy.activatePlus}
+                  onBuyRefill={economy.buyRefill}
+                  onPractice={economy.earnPracticeHeart}
+                />
+              ) : (
+                <EventTabScreen
+                  account={account}
+                  onClaim={economy.claimReward}
+                  onPlay={startLesson}
+                  now={economy.now}
+                />
+              )}
+              <BottomNav
+                activeTab={activeTab}
+                onSelect={setActiveTab}
+                hasEventAlert={anyEventClaimable(account, economy.now)}
+              />
+            </>
           )}
           {appPhase === 'quiz' && (
             <QuizScreen
@@ -480,4 +558,8 @@ const LESSONS = window.PARLA_LESSONS;
     );
   }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+// Reuse one root across Vite HMR updates — a bare createRoot() re-runs on every
+// hot update and stacks duplicate roots on #root (console errors + render thrash).
+const container = document.getElementById('root');
+if (!window.__parlaRoot) window.__parlaRoot = ReactDOM.createRoot(container);
+window.__parlaRoot.render(<App />);
