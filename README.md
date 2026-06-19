@@ -186,7 +186,7 @@ Parla/
 ├── ui.jsx              # Reusable UI: hearts, progress, options, feedback
 ├── screens.jsx         # End states: results, locked, confetti, stars
 ├── mascot.jsx          # Pip SVG mascot with mood animations
-├── questions.js        # Question bank (window.PARLA_QUESTIONS)
+├── questions.js        # Lesson packs (window.PARLA_LESSONS)
 ├── scripts/
 │   ├── check-source.mjs   # npm run test
 │   └── acceptance.mjs     # npm run acceptance
@@ -198,7 +198,7 @@ Parla/
 
 | File | Exports | Responsibility |
 |------|---------|----------------|
-| `questions.js` | `window.PARLA_QUESTIONS` | Static question data |
+| `questions.js` | `window.PARLA_LESSONS` | Lesson packs and question banks |
 | `profile.js` | `window.PARLA_META`, account helpers | Onboarding metadata, plan summary, home copy |
 | `mascot.jsx` | `window.Pip`, `window.Mascot` | Animated SVG mascot |
 | `ui.jsx` | `Heart`, `ProgressBar`, `HeartsDisplay`, `OptionButton`, `QuestionCard`, `FeedbackBar`, `ActionButton` | Shared interactive UI |
@@ -210,41 +210,40 @@ Parla/
 
 ## Configuration
 
-Tune behavior in the `CONFIG` object at the top of `app.jsx`:
+Tune economy and accent colors in the `CONFIG` object at the top of `app.jsx`:
 
 ```javascript
 const CONFIG = {
-  maxHearts: 3,           // Lives per lesson
-  showMascot: true,       // Toggle Pip and speech bubble
-  optionColumns: 2,       // Grid columns for answer choices
-  accent: {
-    c: '#3DDC84',         // Primary green (--green)
-    d: '#22B567',         // Dark green (--green-d)
-  },
+  maxHearts: 5,
+  refillSeconds: 4 * 60 * 60,  // Seconds between free heart refills
+  refillCost: 350,             // Gems to refill all hearts
+  practiceReward: 1,           // Hearts earned from practice recovery
+  practiceGems: 15,            // Gems earned from practice recovery
+  accent: { c: '#58CC02', d: '#46A302' },  // Overrides --green on quiz screen
 };
 ```
 
-CSS custom properties in `index.html` control the full palette (`--blue`, `--coral`, `--purple`, etc.) and can be overridden via the root `style` on `.app`.
+CSS custom properties in `index.html` control the full palette (`--blue`, `--coral`, `--purple`, etc.). `CONFIG.accent` overrides green tokens on the quiz screen via inline styles.
 
 ---
 
 ## Adding questions
 
-Questions live in `questions.js` as an array on `window.PARLA_QUESTIONS`. Each item follows this schema:
+Lessons live in `window.PARLA_LESSONS` in `questions.js`. The app currently loads `PARLA_LESSONS[0]`. Append questions to that lesson’s `questions` array:
 
 ```javascript
 {
   id: 11,
-  prompt: 'book',                    // Word or phrase shown to the learner
-  hint: 'How do you say',            // Uppercase label above the prompt
+  type: 'choice',
+  prompt: 'book',
+  instruction: 'How do you say this in Spanish?',
   options: ['libro', 'mesa', 'silla', 'puerta'],
-  correctIndex: 0,                   // Zero-based index into options
+  correctIndex: 0,
+  explain: 'Libro means book.',
 }
 ```
 
-**Hints in use today:** `How do you say` (English → Spanish) and `Translate` (phrase translation).
-
-With `npm run dev`, changes hot-reload. For production, run `npm run build` before deploy.
+Run `npm run test` after edits — it validates lesson and question schema. With `npm run dev`, changes hot-reload. Run `npm run build` before deploy.
 
 ---
 
@@ -254,14 +253,14 @@ Parla uses a warm, playful aesthetic tuned for learning apps.
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--green` | `#3DDC84` | Primary actions, progress, mascot |
-| `--coral` | `#FF5A7A` | Errors, wrong answers, hearts |
-| `--blue` | `#38BDF8` | Selected options |
-| `--yellow` | `#FFD23C` | Stars, Parla+ accents |
-| `--ink` | `#2B2A4A` | Body text |
-| `--bg` | `#FBF7EF` | Phone screen background |
+| `--green` / `--green-d` | `#58CC02` / `#46A302` | Primary actions, progress, correct states |
+| `--coral` / `--coral-d` | `#FF5A7A` / `#E5274C` | Errors, wrong answers, hearts |
+| `--blue` / `--blue-d` | `#1CB0F6` / `#1789C8` | Selected options, Pip ack text |
+| `--yellow` / `--yellow-d` | `#FFD23C` / `#E9A800` | Stars, Parla+ accents |
+| `--text` / `--text-muted` | `#3C3C3C` / `#777777` | Body and secondary copy |
+| `--bg` / `--surface` | `#F7F7F7` / `#FFFFFF` | Page and card backgrounds |
 
-**Typography:** [Fredoka](https://fonts.google.com/specimen/Fredoka) for display headings, [Nunito](https://fonts.google.com/specimen/Nunito) for UI copy.
+**Typography:** [Nunito](https://fonts.google.com/specimen/Nunito) (400, 700, 800) for all UI and display text — loaded in `index.html`.
 
 **Motion:** Bobbing mascot, heart-break animation, confetti on completion. Respects `prefers-reduced-motion`.
 
@@ -307,7 +306,7 @@ Contributions are welcome. For meaningful changes:
 
 ## License
 
-ISC — see [package.json](package.json).
+ISC — see [LICENSE](LICENSE).
 
 ---
 
