@@ -2,11 +2,12 @@
 
 **Learn Spanish through a Duolingo-style unit path, quiz loop, hearts economy, and premium recovery model.**
 
-Parla is a mobile-first language learning prototype inspired by the strongest product patterns in modern learning apps: a unit map, persistent hearts, streaks, gems, XP, instant feedback, premium upsells, and a mascot that reacts to learner state. It still runs entirely in the browser with React 18 and zero bundler configuration, but this branch now models the freemium economy instead of treating hearts as throwaway quiz state.
+Parla is a mobile-first language learning prototype inspired by the strongest product patterns in modern learning apps: a unit map, persistent hearts, streaks, gems, XP, instant feedback, premium upsells, and a mascot that reacts to learner state. The app is built with **React 19** and **Vite** — JSX is precompiled at build time for local dev and production deploys.
 
-[![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![License](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
-[![Zero Build](https://img.shields.io/badge/build-none-success)](package.json)
+[![Node](https://img.shields.io/badge/Node-%3E%3D22.12-339933?logo=node.js&logoColor=white)](package.json)
 
 ---
 
@@ -31,7 +32,7 @@ Parla is a mobile-first language learning prototype inspired by the strongest pr
 
 Parla turns vocabulary and translation drills into a short, focused lesson. The learner starts from a unit path, spends hearts on mistakes, earns XP/gems/streak progress on completion, and hits a recovery decision when hearts run out: wait, practice, spend gems, or try Parla+.
 
-The app is deliberately simple to run and extend: open a file, edit questions in plain JavaScript, refresh. No Webpack, no Vite, no transpile pipeline. JSX is compiled in the browser via Babel Standalone, and React loads from a CDN.
+Source modules are bundled with Vite (`main.jsx` entry). React and JSX compile at build time — there is no in-browser Babel or CDN React runtime in production.
 
 For the ruthless product and engineering teardown, see [`DUOLINGO_CLONE_AUDIT.md`](DUOLINGO_CLONE_AUDIT.md).
 
@@ -41,7 +42,7 @@ For the ruthless product and engineering teardown, see [`DUOLINGO_CLONE_AUDIT.md
 |----------|----------|
 | Learners | Quick Spanish practice on phone or desktop |
 | Designers | Reference for playful, high-polish mobile UI |
-| Developers | Lightweight React patterns without a build toolchain |
+| Developers | Lightweight React app with a minimal Vite toolchain |
 
 ---
 
@@ -64,10 +65,11 @@ For the ruthless product and engineering teardown, see [`DUOLINGO_CLONE_AUDIT.md
 
 ### Engineering quality
 
-- **Modular IIFE modules** — each file attaches to `window`; no import graph to configure
+- **Vite bundle** — `main.jsx` imports modules in a fixed order; components still register on `window` for the current bridge pattern
 - **Account economy hook** — `useAccount` centralizes hearts, gems, XP, streaks, Plus, and refill timing
 - **Quiz state hook** — `useQuizState` centralizes selection, scoring, feedback, lock, and completion phases
-- **Smoke test** — `npm run test` validates the lesson schema and required component exports
+- **Source smoke test** — `npm run test` validates lesson schema, profile spine, and core invariants
+- **Acceptance suite** — `npm run acceptance` runs Playwright checks against a running preview server
 - **Accessibility** — ARIA on progress bar, reduced-motion media query, semantic buttons
 - **Mobile-first** — phone-frame layout, safe-area insets, `100dvh` viewport handling
 
@@ -77,8 +79,8 @@ For the ruthless product and engineering teardown, see [`DUOLINGO_CLONE_AUDIT.md
 
 ### Prerequisites
 
+- **Node.js 22.12+** (see `engines` in `package.json`; use `nvm use` if you have `.nvmrc`)
 - A modern browser (Chrome, Safari, Firefox, Edge)
-- Any static file server (optional but recommended for local development)
 
 ### Run locally
 
@@ -86,6 +88,12 @@ For the ruthless product and engineering teardown, see [`DUOLINGO_CLONE_AUDIT.md
 # Clone the repository
 git clone https://github.com/Nicolercc/Parla.git
 cd Parla
+
+# Match Node version (optional, if using nvm)
+nvm use
+
+# Install dependencies
+npm install
 
 # Dev server (Vite, hot reload)
 npm run dev
@@ -96,49 +104,59 @@ npm run build && npm run preview
 
 Then visit **http://localhost:5173** for `npm run dev`, or **http://localhost:4173** after `npm run preview`.
 
-Run the smoke test with:
+### Tests
 
 ```bash
+# Source invariants (lessons, profile spine, voice/mascot guards)
 npm run test
+
+# Production build
+npm run build
+
+# End-to-end acceptance (requires preview server on port 3456)
+npm run build && npx vite preview --port 3456 --host 127.0.0.1
+PARLA_URL=http://127.0.0.1:3456 npm run acceptance
 ```
 
-`npm install` once, then Vite precompiles JSX for local dev and Vercel production (`dist/`).
+Vite precompiles JSX for local dev and Vercel production output in `dist/`.
 
 ---
 
 ## Architecture
 
-Parla uses a flat module pattern: plain scripts load in order, each registering components on `window`. React renders a single root in `app.jsx`.
+Vite bundles ES modules from `main.jsx`. Each source file still attaches exports to `window` for compatibility with the existing flat-module layout. React mounts a single root in `app.jsx`.
 
 ```mermaid
 flowchart TB
   subgraph entry["Entry"]
-    HTML["index.html<br/>CSS + script tags"]
+    V["main.jsx<br/>Vite bundle entry"]
+    HTML["index.html<br/>CSS + module script"]
   end
 
   subgraph data["Data"]
-    Q["questions.js<br/>PARLA_QUESTIONS"]
+    Q["questions.js"]
+    P["profile.js"]
   end
 
   subgraph components["Components"]
     M["mascot.jsx → Pip"]
     U["ui.jsx → ProgressBar, Hearts, Options, Feedback"]
     S["screens.jsx → Result, Locked, Confetti"]
+    O["onboarding.jsx → OnboardingFlow"]
   end
 
   subgraph app["Application"]
     A["app.jsx<br/>useQuizState + App"]
   end
 
-  HTML --> Q
-  HTML --> M
-  HTML --> U
-  HTML --> S
-  HTML --> A
-  Q --> A
-  M --> A
-  U --> A
-  S --> A
+  HTML --> V
+  V --> Q
+  V --> P
+  V --> M
+  V --> U
+  V --> S
+  V --> O
+  V --> A
 ```
 
 ### State machine
@@ -159,13 +177,20 @@ Within `quiz`, each question follows: **select → check → feedback → advanc
 
 ```
 Parla/
-├── index.html      # Entry point, global CSS, CDN scripts, load order
-├── app.jsx         # Root component, CONFIG, useQuizState hook
-├── ui.jsx          # Reusable UI: hearts, progress, options, feedback
-├── screens.jsx     # End states: results, locked, confetti, stars
-├── mascot.jsx      # Pip SVG mascot with mood animations
-├── questions.js    # Question bank (window.PARLA_QUESTIONS)
-├── package.json    # Project metadata (no runtime dependencies)
+├── index.html          # Shell, global CSS, Vite module entry
+├── main.jsx            # Vite bundle entry (import order)
+├── vite.config.js      # Vite + React plugin
+├── app.jsx             # Root component, CONFIG, useQuizState hook
+├── onboarding.jsx      # 7-step onboarding + plan summary
+├── profile.js          # Account metadata, plan copy, personalization
+├── ui.jsx              # Reusable UI: hearts, progress, options, feedback
+├── screens.jsx         # End states: results, locked, confetti, stars
+├── mascot.jsx          # Pip SVG mascot with mood animations
+├── questions.js        # Question bank (window.PARLA_QUESTIONS)
+├── scripts/
+│   ├── check-source.mjs   # npm run test
+│   └── acceptance.mjs     # npm run acceptance
+├── package.json
 └── README.md
 ```
 
@@ -174,9 +199,11 @@ Parla/
 | File | Exports | Responsibility |
 |------|---------|----------------|
 | `questions.js` | `window.PARLA_QUESTIONS` | Static question data |
-| `mascot.jsx` | `window.Pip` | Animated SVG mascot |
+| `profile.js` | `window.PARLA_META`, account helpers | Onboarding metadata, plan summary, home copy |
+| `mascot.jsx` | `window.Pip`, `window.Mascot` | Animated SVG mascot |
 | `ui.jsx` | `Heart`, `ProgressBar`, `HeartsDisplay`, `OptionButton`, `QuestionCard`, `FeedbackBar`, `ActionButton` | Shared interactive UI |
 | `screens.jsx` | `ResultScreen`, `LockedScreen`, `Confetti`, `Star` | Terminal and monetization screens |
+| `onboarding.jsx` | `window.OnboardingFlow` | Onboarding flow |
 | `app.jsx` | — (mounts `<App />`) | Orchestration, config, quiz state |
 
 ---
@@ -217,7 +244,7 @@ Questions live in `questions.js` as an array on `window.PARLA_QUESTIONS`. Each i
 
 **Hints in use today:** `How do you say` (English → Spanish) and `Translate` (phrase translation).
 
-After editing, refresh the browser. No rebuild step.
+With `npm run dev`, changes hot-reload. For production, run `npm run build` before deploy.
 
 ---
 
@@ -250,17 +277,15 @@ Parla uses a warm, playful aesthetic tuned for learning apps.
 | Safari 15+ | Full |
 | Firefox 90+ | Full |
 
-Requires a modern browser. JSX is precompiled with Vite at build time — do not ship raw `.jsx` through browser Babel in production.
+Requires a modern browser. JSX is precompiled with Vite at build time — do not ship raw `.jsx` through in-browser Babel in production.
 
 ---
 
 ## Roadmap
 
 - [ ] Spaced repetition and question pools by topic
-- [ ] Local persistence (hearts refill timestamp, streak, XP)
 - [ ] Audio pronunciation for prompts and answers
 - [ ] Keyboard shortcuts (A–D to select, Enter to check)
-- [ ] Build pipeline option (Vite) for production bundles
 - [ ] i18n — support additional target languages
 
 ---
@@ -270,12 +295,13 @@ Requires a modern browser. JSX is precompiled with Vite at build time — do not
 Contributions are welcome. For meaningful changes:
 
 1. Fork the repo and create a feature branch
-2. Keep modules in the existing IIFE + `window` export pattern
-3. Match existing naming, CSS token usage, and component APIs
-4. Test in mobile viewport (375px) and desktop
-5. Open a PR with a clear description and screenshots for UI changes
+2. Use Node 22.12+ (`nvm use` if applicable)
+3. Run `npm run test` and `npm run build` before opening a PR
+4. Match existing naming, CSS token usage, and component APIs
+5. Test in mobile viewport (375px) and desktop
+6. Open a PR with a clear description and screenshots for UI changes
 
-**Good first issues:** new questions, mascot moods, accessibility improvements, reduced-motion polish.
+**Good first issues:** new questions, accessibility improvements, reduced-motion polish.
 
 ---
 
