@@ -79,7 +79,7 @@ const Mascot = window.Mascot;
     );
   }
 
-  function LessonMapScreen({ account, lesson, homeCopy, maxHearts, refillCost, refillLabel, onStartLesson, onTryPlus, onBuyRefill, onPractice }) {
+  function LessonMapScreen({ account, lesson, homeCopy, maxHearts, refillCost, refillLabel, onStartLesson, onTryPlus, onBuyRefill, onPractice, onEditPath }) {
     const locked = !account.isPlus && account.hearts <= 0;
 
     return (
@@ -91,6 +91,7 @@ const Mascot = window.Mascot;
             <p className="home-tagline">{homeCopy.tagline}</p>
             <div className="home-meta">
               {homeCopy.dailyGoal && <div className="home-goal-pill">{homeCopy.dailyGoal}</div>}
+              <button type="button" className="home-edit-path" onClick={onEditPath}>Edit path</button>
               {homeCopy.levelNote && <p className="home-level-note">{homeCopy.levelNote}</p>}
             </div>
           </div>
@@ -113,23 +114,44 @@ const Mascot = window.Mascot;
           onPractice={onPractice}
         />
 
-        <main className="path">
-          <div className="path-line" />
-          <button type="button" className="lesson-node lesson-node--active" onClick={onStartLesson}>
-            <span className="node-crown">★</span>
-            <span className="node-title">{lesson.title}</span>
-            <span className="node-sub">{locked ? 'Unlock hearts to continue' : lesson.xp + ' XP lesson'}</span>
-          </button>
-          <button type="button" className="lesson-node lesson-node--locked" disabled>
-            <span className="node-crown">🔒</span>
-            <span className="node-title">Talk to staff</span>
-            <span className="node-sub">Complete the first lesson</span>
-          </button>
-          <button type="button" className="lesson-node lesson-node--locked" disabled>
-            <span className="node-crown">🔒</span>
-            <span className="node-title">Daily review</span>
-            <span className="node-sub">Personalized practice</span>
-          </button>
+        <main className="path" aria-label="Lesson path">
+          <section className="path-unit-card" aria-label={lesson.unit + ' overview'}>
+            <span className="path-unit-label">{lesson.unit}</span>
+            <strong>Start your Spanish path</strong>
+            <span>{homeCopy.dailyGoal || 'Daily practice'}</span>
+          </section>
+
+          <div className="path-map">
+            <div className="path-line" />
+            <button type="button" className="lesson-node lesson-node--active path-node path-node--left" onClick={onStartLesson}>
+              <span className="node-crown">★</span>
+              <span className="node-callout">
+                <span className="node-title">{lesson.title}</span>
+                <span className="node-sub">{locked ? 'Unlock hearts to continue' : lesson.xp + ' XP lesson'}</span>
+              </span>
+            </button>
+            <button type="button" className="lesson-node lesson-node--locked path-node path-node--right" disabled>
+              <span className="node-crown">2</span>
+              <span className="node-callout">
+                <span className="node-title">Talk to staff</span>
+                <span className="node-sub">Complete the first lesson</span>
+              </span>
+            </button>
+            <button type="button" className="lesson-node lesson-node--locked path-node path-node--center" disabled>
+              <span className="node-crown">3</span>
+              <span className="node-callout">
+                <span className="node-title">Daily review</span>
+                <span className="node-sub">Personalized practice</span>
+              </span>
+            </button>
+            <button type="button" className="lesson-node lesson-node--locked path-node path-node--left" disabled>
+              <span className="node-crown">4</span>
+              <span className="node-callout">
+                <span className="node-title">Checkpoint</span>
+                <span className="node-sub">Unlock with progress</span>
+              </span>
+            </button>
+          </div>
         </main>
       </div>
     );
