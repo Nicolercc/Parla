@@ -271,6 +271,20 @@ async function main() {
     if (/5/.test(goalText)) pass('6 Daily goal pill', goalText.trim());
     else fail('6 Daily goal pill', goalText);
 
+    await page.getByRole('button', { name: /Edit path/i }).click();
+    await page.waitForSelector('text=Hi, I’m Pip');
+    pass('6b Edit path reopens onboarding');
+    await clickButton(page, 'Continue');
+    await clickButton(page, 'Continue');
+    await clickButton(page, 'Continue');
+    await clickButton(page, 'Continue');
+    await clickButton(page, 'Continue');
+    await clickButton(page, 'Continue');
+    await page.waitForSelector('text=Your plan is ready');
+    await clickButton(page, 'Start my first lesson');
+    await page.waitForSelector('text=Travel-ready');
+    pass('6c Edited path saves back to home');
+
     await page.locator('.lesson-node--active').click();
     await page.waitForSelector('text=Check');
     pass('7 Lesson started');

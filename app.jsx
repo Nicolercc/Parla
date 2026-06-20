@@ -507,6 +507,12 @@ const LESSONS = window.PARLA_LESSONS;
       setAppPhase('home');
     }, [economy]);
 
+    const editPath = useCallback(() => {
+      setActiveTab('learn');
+      q.resetQuiz();
+      setAppPhase('onboarding');
+    }, [q.resetQuiz]);
+
     const startLesson = useCallback((lessonId) => {
       const id = typeof lessonId === 'string' ? lessonId : homeLesson.id;
       setActiveLessonId(id);
@@ -542,6 +548,7 @@ const LESSONS = window.PARLA_LESSONS;
                   onTryPlus={economy.activatePlus}
                   onBuyRefill={economy.buyRefill}
                   onPractice={economy.earnPracticeHeart}
+                  onEditPath={editPath}
                 />
               ) : (
                 <EventTabScreen

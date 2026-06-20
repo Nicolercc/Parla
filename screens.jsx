@@ -79,7 +79,7 @@ const Mascot = window.Mascot;
     );
   }
 
-  function LessonMapScreen({ account, lesson, homeCopy, maxHearts, refillCost, refillLabel, onStartLesson, onTryPlus, onBuyRefill, onPractice }) {
+  function LessonMapScreen({ account, lesson, homeCopy, maxHearts, refillCost, refillLabel, onStartLesson, onTryPlus, onBuyRefill, onPractice, onEditPath }) {
     const locked = !account.isPlus && account.hearts <= 0;
 
     return (
@@ -91,6 +91,7 @@ const Mascot = window.Mascot;
             <p className="home-tagline">{homeCopy.tagline}</p>
             <div className="home-meta">
               {homeCopy.dailyGoal && <div className="home-goal-pill">{homeCopy.dailyGoal}</div>}
+              <button type="button" className="home-edit-path" onClick={onEditPath}>Edit path</button>
               {homeCopy.levelNote && <p className="home-level-note">{homeCopy.levelNote}</p>}
             </div>
           </div>
